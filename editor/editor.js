@@ -1,7 +1,7 @@
-class peelib {
+class epEditorRenderer {
     constructor(element) {
         if (!(element instanceof HTMLDivElement)) {
-            throw new Error("Input to peelib editor class must be of type HTMLDivElement.");
+            throw new Error("Input to epEditorRenderer class must be of type HTMLDivElement.");
         }
 
         this.parent = element;
@@ -16,7 +16,7 @@ class peelib {
             theming: {
                 background: "#1e1e1e",
                 foreground: "#fff",
-                fontSize: "16",
+                fontSize: 16,
                 fontFace: "monospace",
                 highlighting: {
                     comment: "#969896",
@@ -53,6 +53,9 @@ class peelib {
             this.correctCanvasSize();
         });
 
+        this.contentVerification = this.hash32("\uF501plaintext");
+        this.syntaxCache = [];
+
         this.resizeObserver.observe(this.canvas);
 
         this.correctCanvasSize();
@@ -60,7 +63,7 @@ class peelib {
 
     correctCanvasSize() {
         const rect = this.canvas.getBoundingClientRect();
-        const dpr = (window.devicePixelRatio || 1)*2;
+        const dpr = (window.devicePixelRatio || 1) * 2;
 
         this.canvas.width = rect.width * dpr;
         this.canvas.height = rect.height * dpr;
@@ -71,36 +74,74 @@ class peelib {
     normalizePrismTokens(tokens) {
         const out = [];
 
-        function pushToken(type, content) {
-            // split only for "none" (whitespace / raw text)
-            if (type === "none" && typeof content === "string" && content.includes("\n")) {
-                const parts = content.split(/(\n)/); // keep \n as separate items
-                for (const part of parts) {
-                    if (part === "") continue;
-                    out.push({ type, content: part });
+        function pushString(str, type = "none") {
+            if (!str) return;
+
+            let start = 0;
+
+            for (let i = 0; i < str.length; i++) {
+                if (str[i] === "\n") {
+                    if (i > start) {
+                        out.push({
+                            type,
+                            content: str.slice(start, i)
+                        });
+                    }
+
+                    // newline is ALWAYS its own token
+                    out.push({
+                        type: "none",
+                        content: "\n"
+                    });
+
+                    start = i + 1;
                 }
-            } else {
-                out.push({ type, content });
+            }
+
+            if (start < str.length) {
+                out.push({
+                    type,
+                    content: str.slice(start)
+                });
             }
         }
 
-        function walk(tokenList) {
+        function walk(tokenList, currentType = "none") {
             for (const token of tokenList) {
+
                 if (typeof token === "string") {
-                    pushToken("none", token);
+                    pushString(token, currentType);
                     continue;
                 }
 
+                const type = token.type || currentType;
+
                 if (Array.isArray(token.content)) {
-                    walk(token.content);
+                    walk(token.content, type);
+                } else if (typeof token.content === "string") {
+                    pushString(token.content, type);
                 } else {
-                    pushToken(token.type || "none", token.content);
+                    // fallback safety
+                    out.push({
+                        type,
+                        content: token.content ?? ""
+                    });
                 }
             }
         }
 
         walk(tokens);
+
         return out;
+    }
+
+    hash32(str) {
+        let h = 2166136261;
+        for (let i = 0; i < str.length; i++) {
+            h ^= str.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
     }
 
     update() {
@@ -109,43 +150,62 @@ class peelib {
         const windowZoom = 1/window.devicePixelRatio;
         this.ctx.fillRect(0, 0, this.canvas.width*windowZoom, this.canvas.height*windowZoom);
 
-        let detectLine = 1;
-        let renderLine = 1;
-        let column = 0;
-
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
 
-        const tokens = this.normalizePrismTokens(
-            Prism.tokenize(this.json.content, Prism.languages[this.json.language])
-        );
+        // render all the text
+        const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
+
+        let tokens;
+
+        if (this.contentVerification === hashDigest) {
+            tokens = this.syntaxCache;
+        }
+        else {
+            tokens = this.normalizePrismTokens(Prism.tokenize(this.json.content, Prism.languages[this.json.language]));
+        }
+
+        this.syntaxCache = tokens;
+        this.contentVerification = hashDigest;
 
         const scrollLine = this.json.scroll.scrollLine;
+
+        let detectLine = 0;
+        let renderLine = 0;
+        let column = 0;
+
+        const lineHeight = this.json.theming.fontSize;
+        const maxLines = Math.floor((this.canvas.height / lineHeight) / window.devicePixelRatio);
+
+        let tokenWidthCache = new Map();
 
         for (const token of tokens) {
             this.ctx.fillStyle = this.json.theming.highlighting[token.type];
 
-            if (token.content === "\n" && token.type === "none") {
-                    detectLine++;
-                    if (detectLine - 1 > scrollLine) renderLine++;
+            if (token.content === "\n") {
+                detectLine++;
+                if (detectLine > scrollLine) renderLine++;
                 column = 0;
                 continue;
             }
 
-            if (detectLine - 1 < scrollLine) continue;
-            if (renderLine > Math.ceil(this.canvas.height / this.json.theming.fontSize)) continue;
+            if (detectLine < scrollLine) continue;
+            if (renderLine >= maxLines) continue;
 
-            this.ctx.fillText(token.content, column, renderLine*this.json.theming.fontSize);
+            this.ctx.fillText(token.content, column, (renderLine + 1) * lineHeight);
 
             column += this.ctx.measureText(token.content).width;
         }
 
-        if (this.json.scroll.showScrollbars === true) {
-            this.ctx.fillStyle = this.json.scroll.scrollbarColor;
-
+        // render scrollbar
+        if (this.json.scroll.showScrollbars) {
             const scrollbarWidth = this.json.scroll.scrollbarWidth;
-            const canvasWidth = this.canvas.getBoundingClientRect().width;
-            const canvasHeight = this.canvas.getBoundingClientRect().height;
+            const rect = this.canvas.getBoundingClientRect();
+            const canvasWidth = rect.width;
+            const canvasHeight = rect.height;
+
+            this.ctx.fillStyle = this.json.scroll.scrollbarColor;
+            this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, scrollbarWidth, canvasHeight);
 
             this.ctx.fillStyle = this.json.theming.background;
             this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, scrollbarWidth, canvasHeight);

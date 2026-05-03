@@ -1,6 +1,6 @@
 const editorDiv = document.getElementById("editor");
 
-const editor = new peelib(editorDiv);
+const editor = new epEditorRenderer(editorDiv);
 
 requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -2983,7 +2983,7 @@ require(['vs/editor/editor.main'], function () {
   }
 
   init();
-});`
+});`;
         editor.update()
     });
 });
