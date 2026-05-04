@@ -47,6 +47,12 @@ class epEditorRenderer {
                 scrollbarWidth: 16,
                 scrollbarColor: "#303030",
             },
+            lineNumbers: {
+                showLineNumbers: true,
+                lineNumberBackgroundColor: "#303030",
+                lineNumberBorderColor: "#444444",
+                lineNumberTextColor: "#777777",
+            },
         };
 
         this.resizeObserver = new ResizeObserver(() => {
@@ -55,6 +61,7 @@ class epEditorRenderer {
 
         this.contentVerification = this.hash32("\uF501plaintext");
         this.syntaxCache = [];
+        this.lineNumbersWidthCache = 0;
 
         this.resizeObserver.observe(this.canvas);
 
@@ -153,9 +160,71 @@ class epEditorRenderer {
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
 
-        // render all the text
+        // pre-calculate for cache verification
         const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
 
+        // render line numbers
+        let widthOfLineNumbers = 0;
+
+        if (this.json.lineNumbers.showLineNumbers) {
+            widthOfLineNumbers = this.lineNumbersWidthCache;
+
+            const firstLineNumber = this.json.scroll.scrollLine;
+            const lineHeight = this.json.theming.fontSize;
+            const totalLines = this.json.content.split("\n").length;
+
+            const visibleLines = Math.ceil(
+                this.canvas.height / lineHeight / window.devicePixelRatio
+            )/2 + 1;
+
+            if (this.contentVerification !== hashDigest) {
+                const cache = new Map();
+
+                for (let i = 0; i < totalLines; i++) {
+                    const str = String(i);
+                    const digitLength = str.length;
+
+                    let w = cache.get(digitLength);
+
+                    if (w === undefined) {
+                        w = this.ctx.measureText(str).width;
+                        cache.set(digitLength, w);
+                    } else {
+                        const measured = this.ctx.measureText(str).width;
+                        if (measured > w) {
+                            w = measured;
+                            cache.set(digitLength, w);
+                        }
+                    }
+
+                    if (w > widthOfLineNumbers) {
+                        widthOfLineNumbers = w;
+                    }
+                }
+
+                this.lineNumbersWidthCache = widthOfLineNumbers;
+            }
+
+            const padding = 8;
+            widthOfLineNumbers += padding;
+
+            const canvasHeight = this.canvas.height/window.devicePixelRatio;
+
+            this.ctx.fillStyle = this.json.lineNumbers.lineNumberBackgroundColor;
+            this.ctx.fillRect(0, 0, widthOfLineNumbers, canvasHeight);
+
+            this.ctx.fillStyle = this.json.lineNumbers.lineNumberBorderColor;
+            this.ctx.fillRect(widthOfLineNumbers, 0, 1, canvasHeight);
+            widthOfLineNumbers++;
+
+            this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
+            for (let i = firstLineNumber; i < firstLineNumber + visibleLines; i++) {
+                if (i > totalLines) break;
+                this.ctx.fillText(String(i), 0, lineHeight * (i - firstLineNumber));
+            }
+        }
+
+        // render all the text
         let tokens;
 
         if (this.contentVerification === hashDigest) {
@@ -172,7 +241,7 @@ class epEditorRenderer {
 
         let detectLine = 0;
         let renderLine = 0;
-        let column = 0;
+        let column = widthOfLineNumbers;
 
         const lineHeight = this.json.theming.fontSize;
         const maxLines = Math.floor((this.canvas.height / lineHeight) / window.devicePixelRatio);
@@ -185,7 +254,7 @@ class epEditorRenderer {
             if (token.content === "\n") {
                 detectLine++;
                 if (detectLine > scrollLine) renderLine++;
-                column = 0;
+                column = widthOfLineNumbers;
                 continue;
             }
 
