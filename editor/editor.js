@@ -10,6 +10,8 @@ class epEditorRenderer {
         this.canvas = element.querySelector("canvas");
         this.ctx = this.canvas.getContext("2d");
 
+        const self = this;
+
         this.json = {
             content: '',
             language: "plaintext",
@@ -53,6 +55,34 @@ class epEditorRenderer {
                 lineNumberBorderColor: "#444444",
                 lineNumberTextColor: "#777777",
             },
+            cursor: {
+                position: 0,
+
+                get y() {
+                    return self.json.content.slice(0, this.position).split("\n").length - 1;
+                },
+                set y(value) {
+                    const col = this.x;
+                    const lines = self.json.content.split("\n");
+                    let pos = 0;
+                    for (let i = 0; i < value && i < lines.length; i++) {
+                        pos += lines[i].length + 1;
+                    }
+                    this.position = pos + Math.min(col, lines[value]?.length ?? 0);
+                },
+                get x() {
+                    const textBeforeCursor = self.json.content.slice(0, this.position);
+                    const lastNewline = textBeforeCursor.lastIndexOf("\n");
+                    return lastNewline === -1 ? this.position : this.position - lastNewline - 1;
+                },
+                set x(value) {
+                    const textBeforeCursor = self.json.content.slice(0, this.position);
+                    const lastNewline = textBeforeCursor.lastIndexOf("\n");
+                    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+                    const currentLine = self.json.content.slice(lineStart).split("\n")[0];
+                    this.position = lineStart + Math.min(value, currentLine.length);
+                },
+            }
         };
 
         this.resizeObserver = new ResizeObserver(() => {
@@ -160,7 +190,7 @@ class epEditorRenderer {
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
 
-        // pre-calculate for cache verification
+        // pre-calculated for cache verification
         const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
 
         // render line numbers
@@ -266,6 +296,19 @@ class epEditorRenderer {
             column += this.ctx.measureText(token.content).width;
         }
 
+        // render cursor
+        const cursorsXCoordinate = this.json.cursor.x;
+        const cursorsYCoordinate = this.json.cursor.y;
+
+        const widthOfAllTheCharsBeforCursor = Math.ceil((
+            this.ctx.measureText(
+                this.json.content.split("\n")[this.json.cursor.y].slice(0, this.json.cursor.x)
+            )
+        ).width + widthOfLineNumbers);
+
+        this.ctx.fillStyle = "#fff";
+        this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, 2/window.devicePixelRatio, lineHeight-2);
+
         // render scrollbar
         if (this.json.scroll.showScrollbars) {
             const scrollbarWidth = this.json.scroll.scrollbarWidth;
@@ -283,7 +326,7 @@ class epEditorRenderer {
             this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, 1, canvasHeight);
 
             const scrollStart = ((detectLine - renderLine) / (detectLine - 1)) * canvasHeight;
-            const scrollEnd = ((canvasHeight / this.json.theming.fontSize)/(detectLine-1))*canvasHeight;
+            const scrollEnd = ((canvasHeight / lineHeight)/(detectLine-1))*canvasHeight;
             this.ctx.fillRect(canvasWidth-scrollbarWidth, scrollStart, scrollbarWidth, scrollEnd);
         }
     }
