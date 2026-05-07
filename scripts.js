@@ -1,5 +1,4 @@
 const editorDiv = document.getElementById("editor");
-
 const editor = new epEditorRenderer(editorDiv);
 
 requestAnimationFrame(() => {
@@ -1029,15 +1028,28 @@ require(['vs/editor/editor.main'], function () {
 });
 
 editorDiv.addEventListener("wheel", (event) => {
-    if (event.deltaY > 0) {
-        editor.json.scroll.scrollLine += 3;
-        const amount = Math.ceil(editor.json.content.split('\n').length - editor.canvas.getBoundingClientRect().height / editor.json.theming.fontSize);
-        if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
+    event.preventDefault();
+
+    let deltaScrollAmount = 0;
+    switch (event.deltaMode) {
+        case (0):
+            deltaScrollAmount = event.deltaY;
+            break;
+        case (1):
+            deltaScrollAmount = event.deltaY * editor.json.theming.fontSize;
+            break;
+        case (2):
+            let screenHeight = editor.canvas.height;
+            deltaScrollAmount = event.deltaY * screenHeight;
+            break;
     }
-    else {
-        editor.json.scroll.scrollLine -= 3;
-        if (editor.json.scroll.scrollLine < 0) editor.json.scroll.scrollLine = 0;
-    }
+
+    editor.json.scroll.scrollPixel += deltaScrollAmount;
+
+    const amount = Math.ceil(editor.json.content.split('\n').length - editor.canvas.getBoundingClientRect().height / editor.json.theming.fontSize);
+    if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
+    if (editor.json.scroll.scrollLine < 0) editor.json.scroll.scrollLine = 0;
+
     editor.update();
 });
 

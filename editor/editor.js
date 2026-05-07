@@ -44,7 +44,13 @@ class epEditorRenderer {
                 },
             },
             scroll: {
-                scrollLine: 0,
+                set scrollLine(value) {
+                    this.scrollPixel = value * self.json.theming.fontSize;
+                },
+                get scrollLine() {
+                    return Math.floor(this.scrollPixel / self.json.theming.fontSize);
+                },
+                scrollPixel: 0,
                 showScrollbars: true,
                 scrollbarWidth: 16,
                 scrollbarColor: "#303030",
