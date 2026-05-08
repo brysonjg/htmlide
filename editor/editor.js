@@ -88,6 +88,8 @@ class epEditorRenderer {
                     const currentLine = self.json.content.slice(lineStart).split("\n")[0];
                     this.position = lineStart + Math.min(value, currentLine.length);
                 },
+
+                cursorVisible: true,
             }
         };
 
@@ -241,8 +243,7 @@ class epEditorRenderer {
                 this.lineNumbersWidthCache = widthOfLineNumbers;
             }
 
-            const padding = 8;
-            widthOfLineNumbers += padding;
+            widthOfLineNumbers += 1;
 
             const canvasHeight = this.canvas.height/window.devicePixelRatio;
 
@@ -254,7 +255,7 @@ class epEditorRenderer {
             widthOfLineNumbers++;
 
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
-            for (let i = firstLineNumber; i < firstLineNumber + visibleLines; i++) {
+            for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
                 this.ctx.fillText(String(i), 0, lineHeight * (i - firstLineNumber));
             }
@@ -303,17 +304,24 @@ class epEditorRenderer {
         }
 
         // render cursor
-        const cursorsXCoordinate = this.json.cursor.x;
-        const cursorsYCoordinate = this.json.cursor.y;
+        if (this.json.cursor.cursorVisible) {
+            const cursorsXCoordinate = this.json.cursor.x;
+            const cursorsYCoordinate = this.json.cursor.y;
 
-        const widthOfAllTheCharsBeforCursor = Math.ceil((
-            this.ctx.measureText(
-                this.json.content.split("\n")[this.json.cursor.y].slice(0, this.json.cursor.x)
-            )
-        ).width + widthOfLineNumbers);
+            const widthOfAllTheCharsBeforCursor = Math.ceil((
+                this.ctx.measureText(
+                    this.json.content.split("\n")[this.json.cursor.y].slice(0, this.json.cursor.x)
+                )
+            ).width + widthOfLineNumbers);
 
-        this.ctx.fillStyle = "#fff";
-        this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, 2/window.devicePixelRatio, lineHeight-2);
+            this.ctx.save();
+            this.ctx.globalCompositeOperation = 'difference';
+
+            this.ctx.fillStyle = "#fff";
+            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, (window.screen.width * 4/2240)/window.devicePixelRatio, lineHeight-2);
+
+            this.ctx.restore();
+        }
 
         // render scrollbar
         if (this.json.scroll.showScrollbars) {

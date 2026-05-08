@@ -1196,6 +1196,16 @@ window.addEventListener("mouseup", () => {
     isDraggingScrollbar = false;
 });
 
+let cursorVisible = true;
+let blinkLocked = false;
+
+const updateCursor = () => {
+    editor.json.cursor.cursorVisible = cursorVisible;
+    requestAnimationFrame(() => {
+        editor.update();
+    });
+};
+
 window.addEventListener("keydown", (event) => {
     event.preventDefault();
 
@@ -1241,11 +1251,33 @@ window.addEventListener("keydown", (event) => {
     if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
     if (editor.json.scroll.scrollLine < 0) editor.json.scroll.scrollLine = 0;
 
+    blinkLocked = true;
+    cursorVisible = true;
+    updateCursor();
+
+    clearTimeout(window.__blinkUnlockTimeout);
+    window.__blinkUnlockTimeout = setTimeout(() => {
+        blinkLocked = false;
+    }, 500);
+
     editor.update();
 });
 
 setInterval(() => {
-    requestAnimationFrame(() => {
-        editor.update();
+    if (blinkLocked) {
+        return;
+    }
+
+    cursorVisible = !cursorVisible;
+    updateCursor();
+}, 500);
+
+
+setInterval(async () => {
+    await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+            editor.update();
+        })
     });
 }, 0);
+
