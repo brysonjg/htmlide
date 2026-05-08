@@ -318,7 +318,7 @@ class epEditorRenderer {
             this.ctx.globalCompositeOperation = 'difference';
 
             this.ctx.fillStyle = "#fff";
-            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, (window.screen.width * 4/2240)/window.devicePixelRatio, lineHeight-2);
+            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, 2/window.devicePixelRatio, lineHeight-2);
 
             this.ctx.restore();
         }

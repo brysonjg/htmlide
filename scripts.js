@@ -1044,7 +1044,7 @@ editorDiv.addEventListener("wheel", (event) => {
             break;
     }
 
-    editor.json.scroll.scrollPixel += deltaScrollAmount;
+    editor.json.scroll.scrollPixel += deltaScrollAmount/3;
 
     const amount = Math.ceil(editor.json.content.split('\n').length - editor.canvas.getBoundingClientRect().height / editor.json.theming.fontSize);
     if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
@@ -1159,7 +1159,7 @@ editorDiv.addEventListener("mousedown", (event) => {
         currentX += charWidth;
     }
 
-    editor.json.cursor.x = charIndex;
+    editor.json.cursor.x = charIndex + 1;
 });
 
 window.addEventListener("mousemove", (event) => {
