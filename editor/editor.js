@@ -285,6 +285,8 @@ class epEditorRenderer {
 
         let tokenWidthCache = new Map();
 
+        this.ctx.textBaseline = "bottom";
+
         for (const token of tokens) {
             this.ctx.fillStyle = this.json.theming.highlighting[token.type];
 
@@ -318,7 +320,7 @@ class epEditorRenderer {
             this.ctx.globalCompositeOperation = 'difference';
 
             this.ctx.fillStyle = "#fff";
-            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight+4, 2/window.devicePixelRatio, lineHeight-2);
+            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight, 2/window.devicePixelRatio, lineHeight-2);
 
             this.ctx.restore();
         }
