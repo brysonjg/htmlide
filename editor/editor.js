@@ -42,13 +42,17 @@ class epEditorRenderer {
                     plain: "#c5c8c6",
                     none: "#c5c8c6",
                 },
+                padding: {
+                    beforeText: 2,
+                    betweenLines: 2,
+                },
             },
             scroll: {
                 set scrollLine(value) {
-                    this.scrollPixel = value * self.json.theming.fontSize;
+                    this.scrollPixel = value * self.getLineStep();
                 },
                 get scrollLine() {
-                    return Math.floor(this.scrollPixel / self.json.theming.fontSize);
+                    return Math.floor(this.scrollPixel / self.getLineStep());
                 },
                 scrollPixel: 0,
                 showScrollbars: true,
@@ -65,32 +69,20 @@ class epEditorRenderer {
                 position: 0,
 
                 get y() {
-                    return self.json.content.slice(0, this.position).split("\n").length - 1;
+                    return self.positionToY(this.position);
                 },
                 set y(value) {
-                    const col = this.x;
-                    const lines = self.json.content.split("\n");
-                    let pos = 0;
-                    for (let i = 0; i < value && i < lines.length; i++) {
-                        pos += lines[i].length + 1;
-                    }
-                    this.position = pos + Math.min(col, lines[value]?.length ?? 0);
+                    this.position = self.xyToPosition(this.x, value);
                 },
                 get x() {
-                    const textBeforeCursor = self.json.content.slice(0, this.position);
-                    const lastNewline = textBeforeCursor.lastIndexOf("\n");
-                    return lastNewline === -1 ? this.position : this.position - lastNewline - 1;
+                    return self.positionToX(this.position);
                 },
                 set x(value) {
-                    const textBeforeCursor = self.json.content.slice(0, this.position);
-                    const lastNewline = textBeforeCursor.lastIndexOf("\n");
-                    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-                    const currentLine = self.json.content.slice(lineStart).split("\n")[0];
-                    this.position = lineStart + Math.min(value, currentLine.length);
+                    this.position = self.xyToPosition(value, this.y);
                 },
 
                 cursorVisible: true,
-            }
+            },
         };
 
         this.resizeObserver = new ResizeObserver(() => {
@@ -104,6 +96,36 @@ class epEditorRenderer {
         this.resizeObserver.observe(this.canvas);
 
         this.correctCanvasSize();
+    }
+
+    positionToX(pos) {
+        const textBeforeCursor = this.json.content.slice(0, pos);
+        const lastNewline = textBeforeCursor.lastIndexOf("\n");
+        return lastNewline === -1 ? pos : pos - lastNewline - 1;
+    }
+
+    positionToY(pos) {
+        return this.json.content.slice(0, pos).split("\n").length - 1;
+    }
+
+    xyToPosition(x, y) {
+        const col = x;
+        const lines = this.json.content.split("\n");
+        let pos = 0;
+        for (let i = 0; i < y && i < lines.length; i++) {
+            pos += lines[i].length + 1;
+        }
+        return pos + Math.min(col, lines[y]?.length ?? 0);
+    }
+
+    getLineStep() {
+        const p = this.json.theming.padding || {};
+        return this.json.theming.fontSize + (p.betweenLines ?? 0);
+    }
+
+    getBeforeText() {
+        const p = this.json.theming.padding || {};
+        return p.beforeText ?? 0;
     }
 
     correctCanvasSize() {
@@ -198,6 +220,10 @@ class epEditorRenderer {
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
 
+        const inset = this.getBeforeText();
+        const lineStep = this.getLineStep();
+        const canvasCssHeight = this.canvas.height / window.devicePixelRatio;
+
         // pre-calculated for cache verification
         const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
 
@@ -208,17 +234,16 @@ class epEditorRenderer {
             widthOfLineNumbers = this.lineNumbersWidthCache;
 
             const firstLineNumber = this.json.scroll.scrollLine;
-            const lineHeight = this.json.theming.fontSize;
             const totalLines = this.json.content.split("\n").length;
 
             const visibleLines = Math.ceil(
-                this.canvas.height / lineHeight / window.devicePixelRatio
+                this.canvas.height / lineStep / window.devicePixelRatio
             )/2 + 1;
 
             if (this.contentVerification !== hashDigest) {
                 const cache = new Map();
 
-                for (let i = 0; i < totalLines; i++) {
+                for (let i = 1; i <= totalLines; i++) {
                     const str = String(i);
                     const digitLength = str.length;
 
@@ -245,19 +270,19 @@ class epEditorRenderer {
 
             widthOfLineNumbers += 1;
 
-            const canvasHeight = this.canvas.height/window.devicePixelRatio;
+            const canvasHeight = canvasCssHeight;
 
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberBackgroundColor;
             this.ctx.fillRect(0, 0, widthOfLineNumbers, canvasHeight);
 
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberBorderColor;
-            this.ctx.fillRect(widthOfLineNumbers, 0, 1, canvasHeight);
+            this.ctx.fillRect(0 + widthOfLineNumbers, 0, 1, canvasHeight);
             widthOfLineNumbers++;
 
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
             for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
-                this.ctx.fillText(String(i), 0, lineHeight * (i - firstLineNumber));
+                this.ctx.fillText(String(i), 0, inset + lineStep * (i - firstLineNumber));
             }
         }
 
@@ -280,10 +305,7 @@ class epEditorRenderer {
         let renderLine = 0;
         let column = widthOfLineNumbers;
 
-        const lineHeight = this.json.theming.fontSize;
-        const maxLines = Math.floor((this.canvas.height / lineHeight) / window.devicePixelRatio);
-
-        let tokenWidthCache = new Map();
+        const maxLines = Math.floor(Math.max(0, canvasCssHeight - inset) / lineStep);
 
         this.ctx.textBaseline = "bottom";
 
@@ -300,14 +322,13 @@ class epEditorRenderer {
             if (detectLine < scrollLine) continue;
             if (renderLine >= maxLines) continue;
 
-            this.ctx.fillText(token.content, column, (renderLine + 1) * lineHeight);
+            this.ctx.fillText(token.content, column, inset + (renderLine + 1) * lineStep);
 
             column += this.ctx.measureText(token.content).width;
         }
 
         // render cursor
         if (this.json.cursor.cursorVisible) {
-            const cursorsXCoordinate = this.json.cursor.x;
             const cursorsYCoordinate = this.json.cursor.y;
 
             const widthOfAllTheCharsBeforCursor = Math.ceil((
@@ -320,7 +341,12 @@ class epEditorRenderer {
             this.ctx.globalCompositeOperation = 'difference';
 
             this.ctx.fillStyle = "#fff";
-            this.ctx.fillRect(widthOfAllTheCharsBeforCursor, (cursorsYCoordinate-this.json.scroll.scrollLine)*lineHeight, 2/window.devicePixelRatio, lineHeight-2);
+            this.ctx.fillRect(
+                widthOfAllTheCharsBeforCursor,
+                inset + (cursorsYCoordinate - this.json.scroll.scrollLine) * lineStep,
+                2/window.devicePixelRatio,
+                lineStep - 2
+            );
 
             this.ctx.restore();
         }
@@ -342,7 +368,9 @@ class epEditorRenderer {
             this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, 1, canvasHeight);
 
             const scrollStart = ((detectLine - renderLine) / (detectLine - 1)) * canvasHeight;
-            const scrollEnd = ((canvasHeight / lineHeight)/(detectLine-1))*canvasHeight;
+            const scrollEnd = detectLine > 1
+                ? ((canvasHeight / lineStep) / (detectLine - 1)) * canvasHeight
+                : canvasHeight;
             this.ctx.fillRect(canvasWidth-scrollbarWidth, scrollStart, scrollbarWidth, scrollEnd);
         }
     }

@@ -1036,7 +1036,7 @@ editorDiv.addEventListener("wheel", (event) => {
             deltaScrollAmount = event.deltaY;
             break;
         case (1):
-            deltaScrollAmount = event.deltaY * editor.json.theming.fontSize;
+            deltaScrollAmount = event.deltaY * editor.getLineStep();
             break;
         case (2):
             let screenHeight = editor.canvas.height;
@@ -1044,9 +1044,14 @@ editorDiv.addEventListener("wheel", (event) => {
             break;
     }
 
-    editor.json.scroll.scrollPixel += deltaScrollAmount/3;
+    editor.json.scroll.scrollPixel += deltaScrollAmount/2.5;
 
-    const amount = Math.ceil(editor.json.content.split('\n').length - editor.canvas.getBoundingClientRect().height / editor.json.theming.fontSize);
+    const rect = editor.canvas.getBoundingClientRect();
+    const inset = editor.getBeforeText();
+    const lineStep = editor.getLineStep();
+    const visibleH = Math.max(0, rect.height - inset);
+    const visibleLines = Math.max(1, Math.floor(visibleH / lineStep));
+    const amount = Math.max(0, editor.json.content.split("\n").length - visibleLines);
     if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
     if (editor.json.scroll.scrollLine < 0) editor.json.scroll.scrollLine = 0;
 
@@ -1071,17 +1076,16 @@ editorDiv.addEventListener("mousedown", (event) => {
     const canvasHeight = rect.height;
 
     const lines = editor.json.content.split("\n").length;
-    const fontSize = Number(editor.json.theming.fontSize);
-
-    const visibleLines = Math.ceil(canvasHeight / fontSize);
+    const lineStep = editor.getLineStep();
+    const visibleLines = Math.max(1, Math.floor(Math.max(0, canvasHeight) / lineStep));
     const maxScroll = Math.max(0, lines - visibleLines);
 
     const thumbHeight = Math.max(
-        (visibleLines / lines) * canvasHeight,
+        lines > 0 ? (visibleLines / lines) * canvasHeight : canvasHeight,
         20
     );
 
-    const trackHeight = canvasHeight - thumbHeight;
+    const trackHeight = Math.max(0, canvasHeight - thumbHeight);
 
     const scrollRatio = maxScroll === 0 ? 0 : editor.json.scroll.scrollLine / maxScroll;
     const thumbY = scrollRatio * trackHeight;
@@ -1092,7 +1096,7 @@ editorDiv.addEventListener("mousedown", (event) => {
 
     if (!clickedOnThumb) {
         const clickRatio = Math.min(
-            Math.max((y - thumbHeight / 2) / trackHeight, 0),
+            Math.max(trackHeight === 0 ? 0 : (y - thumbHeight / 2) / trackHeight, 0),
             1
         );
 
@@ -1120,13 +1124,14 @@ editorDiv.addEventListener("mousedown", (event) => {
     const width = rect.width;
     const scrollbarWidth = editor.json.scroll.scrollbarWidth;
     const lineNumberWidth = editor.lineNumbersWidthCache + 1;
+    const inset = editor.getBeforeText();
+    const lineStep = editor.getLineStep();
 
     if (x >= width - scrollbarWidth) return;
-    if (x < lineNumberWidth) return;
+    if (x < lineNumberWidth + inset) return;
+    if (y < inset) return;
 
-    const fontSize = editor.json.theming.fontSize;
-
-    const line = Math.floor(y / fontSize + editor.json.scroll.scrollLine);
+    const line = Math.floor((y - inset) / lineStep + editor.json.scroll.scrollLine);
 
     const lines = editor.json.content.split("\n");
     if (line < 0 || line >= lines.length) return;
@@ -1135,7 +1140,7 @@ editorDiv.addEventListener("mousedown", (event) => {
 
     editor.json.cursor.y = line;
 
-    let currentX = lineNumberWidth;
+    let currentX = lineNumberWidth + inset;
     let charIndex = text.length;
 
     for (let i = 0; i < text.length; i++) {
@@ -1169,17 +1174,18 @@ window.addEventListener("mousemove", (event) => {
     const canvasHeight = rect.height;
 
     const lines = editor.json.content.split("\n").length;
-    const fontSize = Number(editor.json.theming.fontSize);
+    const inset = editor.getBeforeText();
+    const lineStep = editor.getLineStep();
 
-    const visibleLines = Math.floor(canvasHeight / fontSize);
+    const visibleLines = Math.max(1, Math.floor(Math.max(0, canvasHeight - inset) / lineStep));
     const maxScroll = Math.max(0, lines - visibleLines);
 
     const thumbHeight = Math.max(
-        (visibleLines / lines) * canvasHeight,
+        lines > 0 ? (visibleLines / lines) * canvasHeight : canvasHeight,
         20
     );
 
-    const trackHeight = canvasHeight - thumbHeight;
+    const trackHeight = Math.max(0, canvasHeight - thumbHeight);
 
     let thumbY = (event.clientY - rect.top) - grabOffsetY;
 
@@ -1209,37 +1215,41 @@ const updateCursor = () => {
 window.addEventListener("keydown", (event) => {
     event.preventDefault();
 
+    let cursorPosit = editor.json.cursor.position;
+
     if (event.key === "Backspace") {
-        editor.json.content = editor.json.content.slice(0, editor.json.cursor.position-1) + editor.json.content.slice(editor.json.cursor.position);
+        if (cursorPosit === 0) return;
+
+        editor.json.content = editor.json.content.slice(0, cursorPosit-1) + editor.json.content.slice(cursorPosit);
         editor.json.cursor.position--;
     }
     else if (event.key === "Enter") {
-        editor.json.content = editor.json.content.slice(0, editor.json.cursor.position) + "\n" + editor.json.content.slice(editor.json.cursor.position);
+        editor.json.content = editor.json.content.slice(0, cursorPosit) + "\n" + editor.json.content.slice(cursorPosit);
         editor.json.cursor.position++;
     }
     else if (event.key === "Tab") {
-        editor.json.content = editor.json.content.slice(0, editor.json.cursor.position) + "    " + editor.json.content.slice(editor.json.cursor.position);
+        editor.json.content = editor.json.content.slice(0, cursorPosit) + "    " + editor.json.content.slice(cursorPosit);
         editor.json.cursor.position += 4;
     }
     else if (event.key === "ArrowRight") {
-      editor.json.cursor.position++;
+        editor.json.cursor.position++;
 
-      const flength = editor.json.content.split("\n").length;
-      if (editor.json.cursor.y > flength) editor.json.cursor.y = flength;
+        const flength = editor.json.content.split("\n").length;
+        if (editor.json.cursor.y > flength) editor.json.cursor.y = flength;
     }
     else if (event.key === "ArrowLeft") {
-      editor.json.cursor.position--;
-      if (editor.json.cursor.position < 0) editor.json.cursor.position = 0;
+        editor.json.cursor.position--;
+        if (editor.json.cursor.position < 0) editor.json.cursor.position = 0;
     }
     else if (event.key === "ArrowDown") {
-      editor.json.cursor.y++;
+        editor.json.cursor.y++;
 
-      const flength = editor.json.content.split("\n").length;
-      if (editor.json.cursor.y > flength) editor.json.cursor.y = flength;
+        const flength = editor.json.content.split("\n").length;
+        if (editor.json.cursor.y > flength) editor.json.cursor.y = flength;
     }
     else if (event.key === "ArrowUp") {
-      editor.json.cursor.y--;
-      if (editor.json.cursor.y < 0) editor.json.cursor.y = 0;
+        editor.json.cursor.y--;
+        if (editor.json.cursor.y < 0) editor.json.cursor.y = 0;
     }
     else if (event.key.length === 1) {
         // Only add printable characters
@@ -1247,8 +1257,13 @@ window.addEventListener("keydown", (event) => {
         editor.json.cursor.position++;
     }
 
-    const amount = Math.ceil(editor.json.content.split('\n').length - editor.canvas.getBoundingClientRect().height / editor.json.theming.fontSize);
-    if (editor.json.scroll.scrollLine > amount) editor.json.scroll.scrollLine = amount;
+    const kRect = editor.canvas.getBoundingClientRect();
+    const kInset = editor.getBeforeText();
+    const kLineStep = editor.getLineStep();
+    const kVisibleH = Math.max(0, kRect.height - kInset);
+    const kVisibleLines = Math.max(1, Math.floor(kVisibleH / kLineStep));
+    const maxScrollLine = Math.max(0, editor.json.content.split("\n").length - kVisibleLines);
+    if (editor.json.scroll.scrollLine > maxScrollLine) editor.json.scroll.scrollLine = maxScrollLine;
     if (editor.json.scroll.scrollLine < 0) editor.json.scroll.scrollLine = 0;
 
     blinkLocked = true;
