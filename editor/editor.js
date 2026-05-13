@@ -241,6 +241,8 @@ class epEditorRenderer {
             )/2 + 1;
 
             if (this.contentVerification !== hashDigest) {
+                widthOfLineNumbers = 0;
+
                 const cache = new Map();
 
                 for (let i = 1; i <= totalLines; i++) {

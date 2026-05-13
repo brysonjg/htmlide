@@ -1129,16 +1129,15 @@ editorDiv.addEventListener("mousedown", (event) => {
 
     if (x >= width - scrollbarWidth) return;
     if (x < lineNumberWidth + inset) return;
-    if (y < inset) return;
 
     const line = Math.floor((y - inset) / lineStep + editor.json.scroll.scrollLine);
+
+    editor.json.cursor.y = line;
 
     const lines = editor.json.content.split("\n");
     if (line < 0 || line >= lines.length) return;
 
     const text = lines[line];
-
-    editor.json.cursor.y = line;
 
     let currentX = lineNumberWidth + inset;
     let charIndex = text.length;
@@ -1222,6 +1221,8 @@ window.addEventListener("keydown", (event) => {
 
         editor.json.content = editor.json.content.slice(0, cursorPosit-1) + editor.json.content.slice(cursorPosit);
         editor.json.cursor.position--;
+
+        if (editor.json.cursor.position < 0) editor.json.cursor.position = 0;
     }
     else if (event.key === "Enter") {
         editor.json.content = editor.json.content.slice(0, cursorPosit) + "\n" + editor.json.content.slice(cursorPosit);
@@ -1234,8 +1235,8 @@ window.addEventListener("keydown", (event) => {
     else if (event.key === "ArrowRight") {
         editor.json.cursor.position++;
 
-        const flength = editor.json.content.split("\n").length;
-        if (editor.json.cursor.y > flength) editor.json.cursor.y = flength;
+        const flength = editor.json.content.split("").length;
+        if (editor.json.cursor.position > flength) editor.json.cursor.position = flength;
     }
     else if (event.key === "ArrowLeft") {
         editor.json.cursor.position--;
