@@ -55,7 +55,7 @@ class epEditorRenderer {
                     return Math.floor(this.scrollPixel / self.getLineStep());
                 },
                 scrollPixel: 0,
-                showScrollbars: true,
+                showScrollbar: true,
                 scrollbarWidth: 16,
                 scrollbarColor: "#303030",
             },
@@ -68,17 +68,20 @@ class epEditorRenderer {
             cursor: {
                 position: 0,
 
-                get y() {
-                    return self.positionToY(this.position);
-                },
-                set y(value) {
-                    this.position = self.xyToPosition(this.x, value);
-                },
                 get x() {
                     return self.positionToX(this.position);
                 },
+
                 set x(value) {
                     this.position = self.xyToPosition(value, this.y);
+                },
+
+                get y() {
+                    return self.positionToY(this.position);
+                },
+
+                set y(value) {
+                    this.position = self.xyToPosition(this.x, value);
                 },
 
                 cursorVisible: true,
@@ -284,7 +287,7 @@ class epEditorRenderer {
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
             for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
-                this.ctx.fillText(String(i), 0, inset + lineStep * (i - firstLineNumber));
+                this.ctx.fillText(String(i), 0, lineStep * (i - firstLineNumber) - inset);
             }
         }
 
@@ -354,26 +357,44 @@ class epEditorRenderer {
         }
 
         // render scrollbar
-        if (this.json.scroll.showScrollbars) {
+        if (this.json.scroll.showScrollbar) {
             const scrollbarWidth = this.json.scroll.scrollbarWidth;
             const rect = this.canvas.getBoundingClientRect();
             const canvasWidth = rect.width;
             const canvasHeight = rect.height;
 
-            this.ctx.fillStyle = this.json.scroll.scrollbarColor;
-            this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, scrollbarWidth, canvasHeight);
-
+            // track background (draw first, don't overwrite thumb)
             this.ctx.fillStyle = this.json.theming.background;
-            this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, scrollbarWidth, canvasHeight);
+            this.ctx.fillRect(canvasWidth - scrollbarWidth, 0, scrollbarWidth, canvasHeight);
 
+            // optional subtle border line
             this.ctx.fillStyle = this.json.scroll.scrollbarColor;
-            this.ctx.fillRect(canvasWidth-scrollbarWidth, 0, 1, canvasHeight);
+            this.ctx.fillRect(canvasWidth - scrollbarWidth, 0, 1, canvasHeight);
 
-            const scrollStart = ((detectLine - renderLine) / (detectLine - 1)) * canvasHeight;
-            const scrollEnd = detectLine > 1
-                ? ((canvasHeight / lineStep) / (detectLine - 1)) * canvasHeight
-                : canvasHeight;
-            this.ctx.fillRect(canvasWidth-scrollbarWidth, scrollStart, scrollbarWidth, scrollEnd);
+            const visibleLines = Math.max(1, Math.floor(canvasHeight / lineStep));
+            const totalLines = Math.max(1, detectLine);
+
+            if (totalLines > visibleLines) {
+                const trackHeight = canvasHeight;
+
+                const thumbHeight = Math.max(
+                    (visibleLines / totalLines) * trackHeight,
+                    10 // minimum thumb size
+                );
+
+                const maxScroll = totalLines - visibleLines;
+                const scrollRatio = Math.min(Math.max(renderLine / maxScroll, 0), 1);
+
+                const scrollY = scrollRatio * (trackHeight - thumbHeight);
+
+                this.ctx.fillStyle = this.json.scroll.scrollbarColor;
+                this.ctx.fillRect(
+                    canvasWidth - scrollbarWidth,
+                    scrollY,
+                    scrollbarWidth,
+                    thumbHeight
+                );
+            }
         }
     }
 }
