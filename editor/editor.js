@@ -360,42 +360,22 @@ class epEditorRenderer {
         // render scrollbar
         if (this.json.scroll.showScrollbar) {
             const scrollbarWidth = this.json.scroll.scrollbarWidth;
+
             const rect = this.canvas.getBoundingClientRect();
-            const canvasWidth = rect.width;
-            const canvasHeight = rect.height;
+            const visibleHight = rect.height / lineStep;
+            const fileHeight = this.json.content.split("\n").length;
+            const scrollThumbHeight = (visibleHight / fileHeight) * rect.height;
 
-            // track background (draw first, don't overwrite thumb)
+            const scroll = this.json.scroll.scrollLine;
+            const heightBefore = (scroll / fileHeight) * rect.height;
+
             this.ctx.fillStyle = this.json.theming.background;
-            this.ctx.fillRect(canvasWidth - scrollbarWidth, 0, scrollbarWidth, canvasHeight);
+            this.ctx.fillRect(rect.width-scrollbarWidth, 0, scrollbarWidth, rect.height);
 
-            // optional subtle border line
             this.ctx.fillStyle = this.json.scroll.scrollbarColor;
-            this.ctx.fillRect(canvasWidth - scrollbarWidth, 0, 1, canvasHeight);
+            this.ctx.fillRect(rect.width-scrollbarWidth, heightBefore, scrollbarWidth, scrollThumbHeight);
 
-            const visibleLines = Math.max(1, Math.floor(canvasHeight / lineStep));
-            const totalLines = Math.max(1, detectLine);
-
-            if (totalLines > visibleLines) {
-                const trackHeight = canvasHeight;
-
-                const thumbHeight = Math.max(
-                    (visibleLines / totalLines) * trackHeight,
-                    10 // minimum thumb size
-                );
-
-                const maxScroll = totalLines - visibleLines;
-                const scrollRatio = Math.min(Math.max(renderLine / maxScroll, 0), 1);
-
-                const scrollY = scrollRatio * (trackHeight - thumbHeight);
-
-                this.ctx.fillStyle = this.json.scroll.scrollbarColor;
-                this.ctx.fillRect(
-                    canvasWidth - scrollbarWidth,
-                    scrollY,
-                    scrollbarWidth,
-                    thumbHeight
-                );
-            }
+            this.ctx.fillRect(rect.width-scrollbarWidth, 0, 1, rect.height);
         }
     }
 }
