@@ -3,9 +3,22 @@ var editor = new InteractiveEditor(editorDiv);
 
 requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-        editor.value.content = "the\nthe";
+        editor.value.content = "the\nthe ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content = editor.value.content + editor.value.content + "the ";
+        editor.value.content += "\n";
 
-        editor.update();
+        //
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                editor.update();
+            });
+        });
     });
 });
 

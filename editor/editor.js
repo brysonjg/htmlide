@@ -227,6 +227,8 @@ class epEditorRenderer {
         const lineStep = this.getLineStep();
         const canvasCssHeight = this.canvas.height / window.devicePixelRatio;
 
+        this.ctx.textBaseline = "bottom";
+
         // pre-calculated for cache verification
         const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
 
@@ -287,7 +289,7 @@ class epEditorRenderer {
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
             for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
-                this.ctx.fillText(String(i), 0, lineStep * (i - firstLineNumber) - inset);
+                this.ctx.fillText(String(i), 0, lineStep * (i - firstLineNumber) + inset);
             }
         }
 
@@ -312,7 +314,6 @@ class epEditorRenderer {
 
         const maxLines = Math.floor(Math.max(0, canvasCssHeight - inset) / lineStep);
 
-        this.ctx.textBaseline = "bottom";
 
         for (const token of tokens) {
             this.ctx.fillStyle = this.json.theming.highlighting[token.type];

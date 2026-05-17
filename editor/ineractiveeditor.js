@@ -112,6 +112,32 @@ class InteractiveEditor {
 
                     self.editor.json.cursor.y = value;
                 },
+            },
+            padding: {
+                get beforeText() {
+                    return self.editor.json.theming.padding.beforeText;
+                },
+
+                set beforeText(value) {
+                    if (typeof value !== 'number') {
+                        throw new Error("Editor \'beforeText\' padding (editorObject.padding.beforeText) cannot be set to a value of any type other than \'number\'");
+                    }
+
+                    self.editor.json.theming.padding.beforeText = value;
+                },
+
+
+                get betweenLines() {
+                    return self.editor.json.theming.padding.betweenLines;
+                },
+
+                set betweenLines(value) {
+                    if (typeof value !== 'number') {
+                        throw new Error("Editor \'betweenLines\' padding (editorObject.padding.betweenLines) cannot be set to a value of any type other than \'number\'");
+                    }
+
+                    self.editor.json.theming.padding.betweenLines = value;
+                },
             }
         };
 
@@ -208,6 +234,62 @@ class InteractiveEditor {
                 }
             },
         };
+
+        this.registorDefaultEvents();
+    }
+
+    registorDefaultEvents() {
+        this.event.create("onresize");
+        this.event.create("wheel");
+
+        this.event.listen("onresize", (event) => {
+            this.update();
+        });
+
+        const resizeObserver = new ResizeObserver(() => {
+            this.event.signal("onresize", {});
+        });
+
+        resizeObserver.observe(this.element);
+
+
+        this.event.listen("wheel", (event) => {
+            let deltaScrollAmount = 0;
+
+            if (event.deltaMode === 0) {
+                deltaScrollAmount = event.deltaY;
+            }
+            else if (event.deltaMode === 1) {
+                deltaScrollAmount = event.deltaY * this.editor.getLineStep();
+            }
+            else if (event.deltaMode === 2) {
+                let screenHeight = this.canvas.height;
+                deltaScrollAmount = event.deltaY * screenHeight;
+            }
+
+            this.editor.json.scroll.scrollPixel += deltaScrollAmount/2.5;
+
+            const canvasBounds = this.canvas.getBoundingClientRect();
+            const beforeText = this.padding.beforeText;
+            const lineStep = this.editor.getLineStep();
+            const visibleTextHeight = Math.max(0, canvasBounds.height - beforeText);
+            const maxVisibleLines = Math.max(1, Math.floor(visibleTextHeight / lineStep));
+            const maxScrollLine = Math.max(0, this.value.content.split("\n").length - maxVisibleLines);
+            if (this.scroll.line > maxScrollLine) this.scroll.line = maxScrollLine;
+            if (this.scroll.line < 0) this.scroll.line = 0;
+
+            this.update();
+        });
+
+        this.element.addEventListener("wheel", (event) => {
+            event.preventDefault();
+
+            this.event.signal("wheel", {
+                deltaX: event.deltaX,
+                deltaY: event.deltaY,
+                deltaMode: event.deltaMode,
+            });
+        });
     }
 
     update() {
