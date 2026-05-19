@@ -31,7 +31,7 @@ class InteractiveEditor {
                     }
 
                     if (!Prism.languages[value]) {
-                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dose not corespond with a defined Grammer in the distrobution of the Prism syntax highlighting library");
+                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dosee= not corespond with a defined Grammer in the distribution of the Prism syntax highlighting library");
                     }
 
                     self.editor.json.language = value;
@@ -65,7 +65,7 @@ class InteractiveEditor {
                     }
 
                     if (value < 0) {
-                        throw new Error("Editor cursor position (editorObject.cursor.position) cannot be set to a numaric value that is less then 0");
+                        throw new Error("Editor cursor position (editorObject.cursor.position) cannot be set to a numeric value that is less than 0");
                     }
 
                     self.editor.json.cursor.position = value;
@@ -86,7 +86,7 @@ class InteractiveEditor {
                     }
 
                     if (value < 0) {
-                        throw new Error("Editor cursor x position (editorObject.cursor.x) cannot be set to a numaric value that is less then 0");
+                        throw new Error("Editor cursor x position (editorObject.cursor.x) cannot be set to a numeric value that is less than 0");
                     }
 
                     self.editor.json.cursor.x = value;
@@ -107,7 +107,7 @@ class InteractiveEditor {
                     }
 
                     if (value < 0) {
-                        throw new Error("Editor cursor y position (editorObject.cursor.y) cannot be set to a numaric value that is less then 0");
+                        throw new Error("Editor cursor y position (editorObject.cursor.y) cannot be set to a numeric value that is less than 0");
                     }
 
                     self.editor.json.cursor.y = value;
@@ -138,7 +138,7 @@ class InteractiveEditor {
 
                     self.editor.json.theming.padding.betweenLines = value;
                 },
-            }
+            },
         };
 
         Object.assign(this, this.state); // proxy them to the top level for ease of use
@@ -206,7 +206,7 @@ class InteractiveEditor {
                 }
 
                 if (!this.events[eventType]) {
-                    throw new Error("Editor signaling event that does not exits")
+                    throw new Error("Editor signaling event that does not exist")
                 }
 
                 // real code
@@ -241,6 +241,10 @@ class InteractiveEditor {
     registorDefaultEvents() {
         this.event.create("onresize");
         this.event.create("wheel");
+        this.event.create("mousedown");
+        this.event.create("mousemove");
+        this.event.create("mouseup");
+        this.event.create("keydown");
 
         this.event.listen("onresize", (event) => {
             this.update();
@@ -288,6 +292,251 @@ class InteractiveEditor {
                 deltaX: event.deltaX,
                 deltaY: event.deltaY,
                 deltaMode: event.deltaMode,
+            });
+        });
+
+
+        this.event.listen("mousedown", (event) => {
+            const rect = this.element.getBoundingClientRect();
+
+            const width = rect.width;
+            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+            const lineNumberWidth = this.editor.lineNumbersWidthCache + 1;
+            const inset = this.editor.getBeforeText();
+            const lineStep = this.editor.getLineStep();
+
+            if (event.x >= width - scrollbarWidth) return;
+            if (event.x < lineNumberWidth + inset) return;
+
+            const line = Math.floor((event.y - inset) / lineStep + this.editor.json.scroll.scrollLine);
+
+            this.cursor.y = line;
+
+            const lines = this.value.content.split("\n");
+            if (line < 0 || line >= lines.length) return;
+
+            const text = lines[line];
+
+            let currentX = lineNumberWidth + inset;
+            let charIndex = text.length;
+
+            for (let i = 0; i < text.length; i++) {
+                const charWidth = this.editor.ctx.measureText(text[i]).width;
+
+                const left = currentX;
+                const right = currentX + charWidth;
+
+                if (event.x >= left && event.x < right) {
+                    const mid = (left + right) / 2;
+
+                    if (event.x < mid) {
+                        charIndex = i - 1;
+                    } else {
+                        charIndex = i;
+                    }
+
+                    break;
+                }
+
+                currentX += charWidth;
+            }
+
+            this.cursor.x = charIndex + 1;
+
+            this.update();
+        });
+
+        let startScroll = 0;
+        let isDraggingScrollbar = false;
+        let grabOffsetY = 0;
+
+        this.event.listen("mousedown", (event) => {
+            const rect = this.canvas.getBoundingClientRect();
+
+            const x = event.x - rect.left;
+            const y = event.y - rect.top;
+
+            const width = rect.width;
+            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+
+            if (x < width - scrollbarWidth) return;
+
+            const canvasHeight = rect.height;
+
+            const lines = this.value.content.split("\n").length;
+            const lineHight =  Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+
+            const visibleLines = Math.ceil(canvasHeight / lineHight);
+            const maxScroll = Math.max(0, lines - visibleLines);
+
+            const thumbHeight = Math.max(
+                (visibleLines / lines) * canvasHeight,
+                                         20
+            );
+
+            const trackHeight = canvasHeight - thumbHeight;
+
+            const scrollRatio = maxScroll === 0 ? 0 : this.scroll.line / maxScroll;
+            const thumbY = scrollRatio * trackHeight;
+
+            const clickedOnThumb =
+            y >= thumbY &&
+            y <= thumbY + thumbHeight;
+
+            if (!clickedOnThumb) {
+                const clickRatio = Math.min(
+                    Math.max((y - thumbHeight / 2) / trackHeight, 0),
+                                            1
+                );
+
+                this.scroll.line = Math.ceil(clickRatio * maxScroll);
+                this.update();
+
+                isDraggingScrollbar = true;
+                grabOffsetY = thumbHeight / 2;
+
+                return;
+            }
+
+            isDraggingScrollbar = true;
+            grabOffsetY = y - thumbY;
+        });
+
+        this.element.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            if (event.button !== 0) return;
+
+            this.event.signal("mousedown", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+                shift: event.shiftKey,
+                ctrl: event.ctrlKey,
+                alt: event.altKey,
+                meta: event.metaKey,
+            });
+        });
+
+
+
+        this.event.listen("mousemove", (event) => {
+            if (!isDraggingScrollbar) return;
+
+            const rect = this.element.getBoundingClientRect();
+            const canvasHeight = rect.height;
+
+            const lines = this.value.content.split("\n").length;
+            const lineHight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+
+            const visibleLines = Math.floor(canvasHeight / lineHight);
+            const maxScroll = Math.max(0, lines - visibleLines);
+
+            const thumbHeight = Math.max(
+                (visibleLines / lines) * canvasHeight,
+                                         20
+            );
+
+            const trackHeight = canvasHeight - thumbHeight;
+
+            let thumbY = (event.y - rect.top) - grabOffsetY;
+
+            thumbY = Math.max(0, Math.min(trackHeight, thumbY));
+
+            const scrollRatio = trackHeight === 0 ? 0 : thumbY / trackHeight;
+            this.scroll.line = Math.ceil(scrollRatio * maxScroll);
+
+            this.update();
+        });
+
+        this.element.addEventListener("mousemove", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            this.event.signal("mousemove", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+            });
+        });
+
+
+        this.event.listen("mouseup", (event) => {
+            isDraggingScrollbar = false;
+        });
+
+        this.element.addEventListener("mouseup", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            this.event.signal("mouseup", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+            });
+        });
+
+
+        this.event.listen("keydown", (event) => {
+            if (event.key === "Backspace") {
+                if (this.cursor.position === 0) return;
+
+                this.value.content = this.value.content.slice(0, this.cursor.position-1) + this.value.content.slice(this.cursor.position);
+                this.cursor.position--;
+            }
+            else if (event.key === "Enter") {
+                this.value.content = this.value.content.slice(0, this.cursor.position) + "\n" + this.value.content.slice(this.cursor.position);
+                this.cursor.position++;
+            }
+            else if (event.key === "Tab") {
+                this.value.content = this.value.content.slice(0, this.cursor.position) + "    " + this.value.content.slice(this.cursor.position);
+                this.cursor.position += 4;
+            }
+            else if (event.key === "ArrowRight") {
+                this.cursor.position++;
+
+                const flength = this.value.content.split("\n").length;
+                if (this.cursor.y > flength) this.cursor.y = flength;
+            }
+            else if (event.key === "ArrowLeft") {
+                this.cursor.position--;
+                if (this.cursor.position < 0) this.cursor.position = 0;
+            }
+            else if (event.key === "ArrowDown") {
+                this.cursor.y++;
+
+                const flength = this.value.content.split("\n").length;
+                if (this.cursor.y > flength) this.cursor.y = flength;
+            }
+            else if (event.key === "ArrowUp") {
+                this.cursor.y--;
+                if (this.cursor.y < 0) this.cursor.y = 0;
+            }
+            else if (event.key.length === 1) {
+                // Only add printable characters
+                this.value.content = this.value.content.slice(0, this.cursor.position) + event.key + this.value.content.slice(this.cursor.position);
+                this.cursor.position++;
+            }
+
+            const amount = Math.ceil(this.value.content.split('\n').length - this.canvas.getBoundingClientRect().height / this.editor.json.theming.fontSize);
+            if (this.scroll.line > amount) this.scroll.line = amount;
+            if (this.scroll.line < 0) this.scroll.line = 0;
+
+            this.update();
+        });
+
+        window.addEventListener("keydown", (event) => {
+            event.preventDefault();
+
+            this.event.signal("keydown", {
+                shiftKey: event.shiftKey,
+                ctrlKey: event.ctrlKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                key: event.key,
+                composing: event.isComposing,
+                repeat: event.repeat,
             });
         });
     }
