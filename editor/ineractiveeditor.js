@@ -301,23 +301,25 @@ class InteractiveEditor {
 
             const width = rect.width;
             const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
-            const lineNumberWidth = this.editor.lineNumbersWidthCache + 1;
+            const lineNumberWidth = this.editor.lineNumbersWidthCache;
             const inset = this.editor.getBeforeText();
             const lineStep = this.editor.getLineStep();
 
             if (event.x >= width - scrollbarWidth) return;
-            if (event.x < lineNumberWidth + inset) return;
+            if (event.x < lineNumberWidth) return;
 
-            const line = Math.floor((event.y - inset) / lineStep + this.editor.json.scroll.scrollLine);
+            let line = Math.floor((event.y - inset) / lineStep + this.editor.json.scroll.scrollLine);
+            line = line <= 0 ? 0 : line;
 
             this.cursor.y = line;
+            this.update();
 
             const lines = this.value.content.split("\n");
             if (line < 0 || line >= lines.length) return;
 
             const text = lines[line];
 
-            let currentX = lineNumberWidth + inset;
+            let currentX = lineNumberWidth;
             let charIndex = text.length;
 
             for (let i = 0; i < text.length; i++) {
@@ -353,8 +355,8 @@ class InteractiveEditor {
         this.event.listen("mousedown", (event) => {
             const rect = this.canvas.getBoundingClientRect();
 
-            const x = event.x - rect.left;
-            const y = event.y - rect.top;
+            const x = event.x;
+            const y = event.y;
 
             const width = rect.width;
             const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
@@ -364,32 +366,19 @@ class InteractiveEditor {
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHight =  Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+            const lineHeight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
 
-            const visibleLines = Math.ceil(canvasHeight / lineHight);
-            const maxScroll = Math.max(0, lines - visibleLines);
+            const visibleLines = canvasHeight / lineHeight;
+            const maxScroll = Math.max(0, lines - Math.floor(visibleLines));
 
-            const thumbHeight = Math.max(
-                (visibleLines / lines) * canvasHeight,
-                                         20
-            );
+            const thumbHeight = (visibleLines / lines) * canvasHeight;
+            const thumbY = (this.scroll.line / lines) * canvasHeight;
 
-            const trackHeight = canvasHeight - thumbHeight;
-
-            const scrollRatio = maxScroll === 0 ? 0 : this.scroll.line / maxScroll;
-            const thumbY = scrollRatio * trackHeight;
-
-            const clickedOnThumb =
-            y >= thumbY &&
-            y <= thumbY + thumbHeight;
+            const clickedOnThumb = y >= thumbY && y <= thumbY + thumbHeight;
 
             if (!clickedOnThumb) {
-                const clickRatio = Math.min(
-                    Math.max((y - thumbHeight / 2) / trackHeight, 0),
-                                            1
-                );
-
-                this.scroll.line = Math.ceil(clickRatio * maxScroll);
+                const newThumbY = Math.max(0, Math.min(canvasHeight - thumbHeight, y - thumbHeight / 2));
+                this.scroll.line = Math.min(maxScroll, Math.round(newThumbY * lines / canvasHeight));
                 this.update();
 
                 isDraggingScrollbar = true;
@@ -420,7 +409,6 @@ class InteractiveEditor {
         });
 
 
-
         this.event.listen("mousemove", (event) => {
             if (!isDraggingScrollbar) return;
 
@@ -428,24 +416,17 @@ class InteractiveEditor {
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+            const lineHeight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
 
-            const visibleLines = Math.floor(canvasHeight / lineHight);
-            const maxScroll = Math.max(0, lines - visibleLines);
+            const visibleLines = canvasHeight / lineHeight;
+            const maxScroll = Math.max(0, lines - Math.floor(visibleLines));
 
-            const thumbHeight = Math.max(
-                (visibleLines / lines) * canvasHeight,
-                                         20
-            );
+            const thumbHeight = (visibleLines / lines) * canvasHeight;
 
-            const trackHeight = canvasHeight - thumbHeight;
+            let thumbTop = (event.y) - grabOffsetY;
+            thumbTop = Math.max(0, Math.min(canvasHeight - thumbHeight, thumbTop));
 
-            let thumbY = (event.y - rect.top) - grabOffsetY;
-
-            thumbY = Math.max(0, Math.min(trackHeight, thumbY));
-
-            const scrollRatio = trackHeight === 0 ? 0 : thumbY / trackHeight;
-            this.scroll.line = Math.ceil(scrollRatio * maxScroll);
+            this.scroll.line = Math.min(maxScroll, Math.round(thumbTop * lines / canvasHeight));
 
             this.update();
         });

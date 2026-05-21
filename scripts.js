@@ -48,5 +48,10 @@ function init() {
             document.body.classList.remove("isMenuOpenable");
         }
     });
-}
 
+    window.addEventListener("blur", () => {
+        if (document.body.classList.contains("isMenuOpenable")) {
+            document.body.classList.remove("isMenuOpenable");
+        }
+    });
+}
