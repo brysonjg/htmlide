@@ -60,7 +60,10 @@ toppbar div.menus div.menu {
     position: relative;
 }
 
-toppbar div.menus div.menu:hover {
+toppbar div.menus div.menu:hover,
+toppbar div.menus div.menu div.sub-menu:hover,
+body.isMenuOpenable toppbar div.menus div.menu.active,
+body.isMenuOpenable toppbar div.menus div.menu div.sub-menu:hover {
     background-color: var(--menu-hover-active);
 }
 
@@ -68,8 +71,10 @@ toppbar div.menus div.menu div.sub-menu:hover {
     background-color: var(--menu-hover-active);
 }
 
-toppbar div.menus div.menu:not(:hover) div.actions,
-toppbar div.menus div.sub-menu:not(:hover) div.actions{
+toppbar div.menus div.menu:not(.active) div.actions,
+toppbar div.menus div.sub-menu:not(:hover) div.actions,
+body:not(.isMenuOpenable) toppbar div.menus div.menu div.actions,
+body:not(.isMenuOpenable) toppbar div.menus div.sub-menu div.actions {
     display: none;
     width: 0;
     height: 0;
@@ -78,7 +83,7 @@ toppbar div.menus div.sub-menu:not(:hover) div.actions{
     z-index: -100;
 }
 
-toppbar div.menus div.menu:hover div.actions,
+toppbar div.menus div.menu.active div.actions,
 toppbar div.menus div.sub-menu:hover div.actions {
     position: absolute;
     top: 100%;
@@ -98,13 +103,13 @@ toppbar div.menus div.sub-menu:hover div.actions {
     left: 100%;
 }
 
-toppbar div.menus div.menu:hover div.actions div.action,
+toppbar div.menus div.menu.active div.actions div.action,
 toppbar div.menus div.sub-menu:hover div.actions div.action {
   padding: 2px 4px;
   background-color: transparent;
 }
 
-toppbar div.menus div.menu:hover div.actions div.action:hover,
+toppbar div.menus div.menu.active div.actions div.action:hover,
 toppbar div.menus div.sub-menu:hover div.actions div.action:hover {
   padding: 2px 4px;
   background-color: var(--menu-hover-active);
