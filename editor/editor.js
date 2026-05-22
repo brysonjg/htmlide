@@ -45,6 +45,7 @@ class epEditorRenderer {
                 padding: {
                     beforeText: 2,
                     betweenLines: 2,
+                    lineNumberHorizontal: 2,
                 },
             },
             scroll: {
@@ -275,6 +276,7 @@ class epEditorRenderer {
                 this.lineNumbersWidthCache = widthOfLineNumbers;
             }
 
+            widthOfLineNumbers += 2 * this.json.theming.padding.lineNumberHorizontal; // eather side
             widthOfLineNumbers += 1;
 
             const canvasHeight = canvasCssHeight;
@@ -289,7 +291,12 @@ class epEditorRenderer {
             this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
             for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
-                this.ctx.fillText(String(i), 0, lineStep * (i - firstLineNumber) + inset);
+
+                this.ctx.fillText(
+                    String(i),
+                    widthOfLineNumbers - this.ctx.measureText(String(i)).width - 1.5 - this.json.theming.padding.lineNumberHorizontal,
+                    lineStep * (i - firstLineNumber) + inset
+                );
             }
         }
 

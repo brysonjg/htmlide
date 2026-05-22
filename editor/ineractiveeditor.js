@@ -47,6 +47,10 @@ class InteractiveEditor {
                         throw new Error("Editor scroll line (editorObject.scroll.line) cannot be set to a value of any type other than \'number\'");
                     }
 
+                    if (value < 0) {
+                        throw new Error("Editor scroll line (editorObject.scroll.line) cannot be set to any negetive values");
+                    }
+
                     self.editor.json.scroll.scrollLine = value;
                 }
             },
@@ -477,12 +481,13 @@ class InteractiveEditor {
             else if (event.key === "ArrowRight") {
                 this.cursor.position++;
 
-                const flength = this.value.content.split("\n").length;
-                if (this.cursor.y > flength) this.cursor.y = flength;
+                const flength = this.value.content.length;
+                if (this.cursor.position > flength) this.cursor.position = flength;
             }
             else if (event.key === "ArrowLeft") {
-                this.cursor.position--;
-                if (this.cursor.position < 0) this.cursor.position = 0;
+                if (this.cursor.position > 0) {
+                    this.cursor.position--;
+                }
             }
             else if (event.key === "ArrowDown") {
                 this.cursor.y++;
@@ -491,8 +496,9 @@ class InteractiveEditor {
                 if (this.cursor.y > flength) this.cursor.y = flength;
             }
             else if (event.key === "ArrowUp") {
-                this.cursor.y--;
-                if (this.cursor.y < 0) this.cursor.y = 0;
+                if (this.cursor.y > 0) {
+                    this.cursor.y--;
+                }
             }
             else if (event.key.length === 1) {
                 // Only add printable characters
@@ -500,9 +506,30 @@ class InteractiveEditor {
                 this.cursor.position++;
             }
 
-            const amount = Math.ceil(this.value.content.split('\n').length - this.canvas.getBoundingClientRect().height / this.editor.json.theming.fontSize);
-            if (this.scroll.line > amount) this.scroll.line = amount;
-            if (this.scroll.line < 0) this.scroll.line = 0;
+            // make sure that the cursor is in the veiwpoint
+            const canvasHight = this.canvas.getBoundingClientRect().height;
+            const deltaLine = this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines;
+            const veiwpointHeight = Math.floor(canvasHight/deltaLine);
+            const bottomOfVeiwpoint = this.scroll.line + veiwpointHeight;
+
+            if (this.cursor.y < this.scroll.line && this.cursor.y >= 0) {
+                this.scroll.line = this.cursor.y;
+            }
+            else if (this.cursor.y >= bottomOfVeiwpoint) {
+                this.scroll.line -= bottomOfVeiwpoint - this.cursor.y - 1;
+            }
+
+            const fileHeight = this.value.content.split("\n").length;
+
+            if (bottomOfVeiwpoint > fileHeight) {
+                if (fileHeight - veiwpointHeight > 0) {
+                    this.scroll.line = fileHeight - veiwpointHeight;
+                }
+            }
+
+            if (this.scroll.line !== 0 && veiwpointHeight >= fileHeight) {
+                this.scroll.line = 0;
+            }
 
             this.update();
         });
