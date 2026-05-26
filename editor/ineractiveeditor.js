@@ -347,7 +347,7 @@ class InteractiveEditor {
                 currentX += charWidth;
             }
 
-            this.cursor.x = charIndex + 1;
+            this.cursor.x = charIndex;
 
             this.update();
         });

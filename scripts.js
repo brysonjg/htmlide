@@ -7,6 +7,55 @@ requestAnimationFrame(() => {
     });
 });
 
+
+
+async function fileOpen() {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement("input");
+
+        input.type = "file";
+        input.multiple = false;
+
+        // hidden inline styles
+        input.style.position = "fixed";
+        input.style.left = "-9999px";
+        input.style.top = "-9999px";
+        input.style.opacity = "0";
+        input.style.pointerEvents = "none";
+
+        const cleanup = () => {
+            input.remove();
+        };
+
+        input.addEventListener("change", async () => {
+            try {
+                const file = input.files?.[0];
+
+                if (!file) {
+                    cleanup();
+                    reject();
+                    return;
+                }
+
+                cleanup();
+
+                editor.value.content = await file.text();
+                editor.update();
+
+                resolve();
+
+            } catch (err) {
+                cleanup();
+                reject();
+            }
+        });
+
+        document.body.appendChild(input);
+
+        input.click();
+    });
+}
+
 function init() {
     editor.value.language = "js";
     editor.value.content = "";
@@ -37,7 +86,11 @@ function init() {
 
             switch (action) {
                 case "fopen":
-                    console.log("fopend");
+                    fileOpen();
+                    break;
+                case "clear":
+                    editor.value.content = "";
+                    editor.update();
                     break;
             }
         });
