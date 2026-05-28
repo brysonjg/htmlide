@@ -303,20 +303,18 @@ class InteractiveEditor {
         this.event.listen("mousedown", (event) => {
             const rect = this.element.getBoundingClientRect();
 
-            const width = rect.width;
             const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
             const lineNumberWidth = this.editor.lineNumbersWidthCache;
             const inset = this.editor.getBeforeText();
             const lineStep = this.editor.getLineStep();
 
-            if (event.x >= width - scrollbarWidth) return;
+            if (event.x >= rect.width - scrollbarWidth) return;
             if (event.x < lineNumberWidth) return;
 
             let line = Math.floor((event.y - inset) / lineStep + this.editor.json.scroll.scrollLine);
             line = line <= 0 ? 0 : line;
 
             this.cursor.y = line;
-            this.update();
 
             const lines = this.value.content.split("\n");
             if (line < 0 || line >= lines.length) return;
@@ -327,24 +325,12 @@ class InteractiveEditor {
             let charIndex = text.length;
 
             for (let i = 0; i < text.length; i++) {
-                const charWidth = this.editor.ctx.measureText(text[i]).width;
+                currentX += this.editor.ctx.measureText(text[i]).width;
 
-                const left = currentX;
-                const right = currentX + charWidth;
-
-                if (event.x >= left && event.x < right) {
-                    const mid = (left + right) / 2;
-
-                    if (event.x < mid) {
-                        charIndex = i - 1;
-                    } else {
-                        charIndex = i;
-                    }
-
+                if (event.x < currentX) {
+                    charIndex = i;
                     break;
                 }
-
-                currentX += charWidth;
             }
 
             this.cursor.x = charIndex;
