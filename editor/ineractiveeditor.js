@@ -143,6 +143,61 @@ class InteractiveEditor {
                     self.editor.json.theming.padding.betweenLines = value;
                 },
             },
+            selection: {
+                get active() {
+                    return self.editor.json.selection.selectionActive;
+                },
+
+                set active(value) {
+                    if (typeof value !== 'boolean') {
+                        throw new Error("Editor selection active (editorObject.selection.active) cannot be set to a value of any type other than \'boolean\'");
+                    }
+
+                    self.editor.json.selection.selectionActive = value;
+                },
+
+
+                get start() {
+                    return self.editor.json.selection.startSelect;
+                },
+
+                set start(value) {
+                    if (typeof value !== 'number') {
+                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a value of any type other than \'number\'");
+                    }
+
+                    if (value < 0) {
+                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a numaric value less than 0");
+                    }
+
+                    if (isNaN(value)) {
+                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a value of NaN");
+                    }
+
+                    self.editor.json.selection.startSelect = value;
+                },
+
+
+                get end() {
+                    return self.editor.json.selection.endSelect;
+                },
+
+                set end(value) {
+                    if (typeof value !== 'number') {
+                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a value of any type other than \'number\'");
+                    }
+
+                    if (value < 0) {
+                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a numaric value less than 0");
+                    }
+
+                    if (isNaN(value)) {
+                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a value of NaN");
+                    }
+
+                    self.editor.json.selection.endSelect = value;
+                },
+            },
         };
 
         Object.assign(this, this.state); // proxy them to the top level for ease of use

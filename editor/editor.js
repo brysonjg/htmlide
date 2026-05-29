@@ -87,6 +87,12 @@ class epEditorRenderer {
 
                 cursorVisible: true,
             },
+            selection: {
+                selectionActive: false,
+                startSelect: 0,
+                endSelect: 0,
+                selectColor: "#264f78",
+            }
         };
 
         this.resizeObserver = new ResizeObserver(() => {
@@ -224,7 +230,7 @@ class epEditorRenderer {
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
 
-        const inset = this.getBeforeText();
+        const paddingBeforeText = this.getBeforeText();
         const lineStep = this.getLineStep();
         const canvasCssHeight = this.canvas.height / window.devicePixelRatio;
 
@@ -295,8 +301,75 @@ class epEditorRenderer {
                 this.ctx.fillText(
                     String(i),
                     widthOfLineNumbers - this.ctx.measureText(String(i)).width - 1.5 - this.json.theming.padding.lineNumberHorizontal,
-                    lineStep * (i - firstLineNumber) + inset
+                    lineStep * (i - firstLineNumber) + paddingBeforeText
                 );
+            }
+        }
+
+        // render user text-selection
+        if (this.json.selection.selectionActive) {
+            const start = Math.min(
+                this.json.selection.startSelect,
+                this.json.selection.endSelect
+            );
+
+            const end = Math.max(
+                this.json.selection.startSelect,
+                this.json.selection.endSelect
+            );
+
+            const lines = this.json.content.split("\n").map((item) => `${item}\n`);
+            const scrollLine = this.json.scroll.scrollLine;
+
+            const firstVisibleLine = Math.max(0, scrollLine - 1);
+            const lastVisibleLine = Math.min(
+                lines.length,
+                scrollLine + Math.ceil(this.canvas.height / lineStep) + 2
+            );
+
+            this.ctx.fillStyle = this.json.selection.selectColor;
+
+            let globalPos = 0;
+
+            for (let lineIndex = 0; lineIndex < firstVisibleLine; lineIndex++) {
+                globalPos += lines[lineIndex].length;
+            }
+
+            for (let lineIndex = firstVisibleLine; lineIndex < lastVisibleLine; lineIndex++) {
+                const line = lines[lineIndex];
+
+                const lineStart = globalPos;
+                const lineEnd = globalPos + line.length;
+
+                const selectionStart = Math.max(start, lineStart);
+                const selectionEnd = Math.min(end, lineEnd + 1);
+
+                if (selectionStart < selectionEnd) {
+                    const startColumn = selectionStart - lineStart;
+                    const endColumn = Math.min(selectionEnd - lineStart, line.length);
+
+                    const textBeforeSelection = line.slice(0, startColumn);
+                    const selectedText = line.slice(startColumn, endColumn);
+
+                    const x =
+                        widthOfLineNumbers +
+                        this.ctx.measureText(textBeforeSelection).width;
+
+                    const w = this.ctx.measureText(selectedText).width;
+
+                    const y =
+                        (lineIndex - scrollLine) * lineStep +
+                        paddingBeforeText;
+
+                    this.ctx.fillRect(
+                        x,
+                        y,
+                        w,
+                        lineStep
+                    );
+                }
+
+                globalPos += line.length;
             }
         }
 
@@ -319,7 +392,7 @@ class epEditorRenderer {
         let renderLine = 0;
         let column = widthOfLineNumbers;
 
-        const maxLines = Math.floor(Math.max(0, canvasCssHeight - inset) / lineStep);
+        const maxLines = Math.floor(Math.max(0, canvasCssHeight - paddingBeforeText) / lineStep);
 
 
         for (const token of tokens) {
@@ -335,7 +408,7 @@ class epEditorRenderer {
             if (detectLine < scrollLine) continue;
             if (renderLine >= maxLines) continue;
 
-            this.ctx.fillText(token.content, column, inset + (renderLine + 1) * lineStep);
+            this.ctx.fillText(token.content, column, paddingBeforeText + (renderLine + 1) * lineStep);
 
             column += this.ctx.measureText(token.content).width;
         }
@@ -356,9 +429,9 @@ class epEditorRenderer {
             this.ctx.fillStyle = "#fff";
             this.ctx.fillRect(
                 widthOfAllTheCharsBeforCursor,
-                inset + (cursorsYCoordinate - this.json.scroll.scrollLine) * lineStep,
+                paddingBeforeText + (cursorsYCoordinate - this.json.scroll.scrollLine) * lineStep,
                 2/window.devicePixelRatio,
-                lineStep - 2
+                lineStep
             );
 
             this.ctx.restore();
