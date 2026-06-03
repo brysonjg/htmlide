@@ -372,7 +372,10 @@ class InteractiveEditor {
             this.cursor.y = line;
 
             const lines = this.value.content.split("\n");
-            if (line < 0 || line >= lines.length) return;
+            if (line < 0 || line >= lines.length) {
+                this.update();
+                return;
+            }
 
             const text = lines[line];
 

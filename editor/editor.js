@@ -213,11 +213,12 @@ class epEditorRenderer {
     }
 
     hash32(str) {
-        let h = 2166136261;
+        let h = str.length;
+
         for (let i = 0; i < str.length; i++) {
-            h ^= str.charCodeAt(i);
-            h = Math.imul(h, 16777619);
+            h = ((h << 5) - h + str.charCodeAt(i)) | 0;
         }
+
         return h >>> 0;
     }
 
@@ -234,6 +235,9 @@ class epEditorRenderer {
         const lineStep = this.getLineStep();
         const canvasCssHeight = this.canvas.height / window.devicePixelRatio;
 
+        const splitContent = this.json.content.split("\n");
+        const lineCount = splitContent.length;
+
         this.ctx.textBaseline = "bottom";
 
         // pre-calculated for cache verification
@@ -246,7 +250,7 @@ class epEditorRenderer {
             widthOfLineNumbers = this.lineNumbersWidthCache;
 
             const firstLineNumber = this.json.scroll.scrollLine;
-            const totalLines = this.json.content.split("\n").length;
+            const totalLines = lineCount;
 
             const visibleLines = Math.ceil(
                 this.canvas.height / lineStep / window.devicePixelRatio
@@ -318,7 +322,7 @@ class epEditorRenderer {
                 this.json.selection.endSelect
             );
 
-            const lines = this.json.content.split("\n").map((item) => `${item}\n`);
+            const lines = splitContent.map((item) => `${item}\n`);
             const scrollLine = this.json.scroll.scrollLine;
 
             const firstVisibleLine = Math.max(0, scrollLine - 1);
@@ -334,6 +338,12 @@ class epEditorRenderer {
             for (let lineIndex = 0; lineIndex < firstVisibleLine; lineIndex++) {
                 globalPos += lines[lineIndex].length;
             }
+
+            const mesureText_ = (str) => {
+                if (str === "") return 0;
+
+                return this.ctx.measureText(str).width;
+            };
 
             for (let lineIndex = firstVisibleLine; lineIndex < lastVisibleLine; lineIndex++) {
                 const line = lines[lineIndex];
@@ -353,9 +363,9 @@ class epEditorRenderer {
 
                     const x =
                         widthOfLineNumbers +
-                        this.ctx.measureText(textBeforeSelection).width;
+                        mesureText_(textBeforeSelection);
 
-                    const w = this.ctx.measureText(selectedText).width;
+                    const w = mesureText_(selectedText);
 
                     const y =
                         (lineIndex - scrollLine) * lineStep +
@@ -419,7 +429,7 @@ class epEditorRenderer {
 
             const widthOfAllTheCharsBeforCursor = Math.ceil((
                 this.ctx.measureText(
-                    this.json.content.split("\n")[this.json.cursor.y].slice(0, this.json.cursor.x)
+                    splitContent[this.json.cursor.y].slice(0, this.json.cursor.x)
                 )
             ).width + widthOfLineNumbers);
 
@@ -443,7 +453,7 @@ class epEditorRenderer {
 
             const rect = this.canvas.getBoundingClientRect();
             const visibleHight = rect.height / lineStep;
-            const fileHeight = this.json.content.split("\n").length;
+            const fileHeight = lineCount;
             const scrollThumbHeight = (visibleHight / fileHeight) * rect.height;
 
             const scroll = this.json.scroll.scrollLine;

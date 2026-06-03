@@ -9,61 +9,63 @@ requestAnimationFrame(() => {
 
 
 
+let currentFileHandle = null;
+
 async function fileOpen() {
-    return new Promise((resolve, reject) => {
-        const input = document.createElement("input");
+    if (!window.showOpenFilePicker) return;
 
-        input.type = "file";
-        input.multiple = false;
+    try {
+        const [handle] = await showOpenFilePicker();
 
-        // hidden inline styles
-        input.style.position = "fixed";
-        input.style.left = "-9999px";
-        input.style.top = "-9999px";
-        input.style.opacity = "0";
-        input.style.pointerEvents = "none";
+        const file = await handle.getFile();
+        editor.value.content = await file.text();
+        editor.update();
 
-        const cleanup = () => {
-            input.remove();
-        };
-
-        input.addEventListener("change", async () => {
-            try {
-                const file = input.files?.[0];
-
-                if (!file) {
-                    cleanup();
-                    reject();
-                    return;
-                }
-
-                cleanup();
-
-                editor.value.content = await file.text();
-                editor.update();
-
-                resolve();
-
-            } catch (err) {
-                cleanup();
-                reject();
-            }
-        });
-
-        document.body.appendChild(input);
-
-        input.click();
-    });
+        currentFileHandle = handle;
+    }
+    catch {
+        return;
+    }
 }
+
+async function saveFile() {
+    if (!window.showOpenFilePicker) return;
+
+    if (!currentFileHandle) {
+        await saveFileAs();
+        return;
+    }
+
+    const writable = await currentFileHandle.createWritable();
+    await writable.write(editor.value.content);
+    await writable.close();
+}
+
+async function saveFileAs() {
+    try {
+        const handle = await window.showSaveFilePicker();
+
+        const writable = await handle.createWritable();
+        await writable.write(editor.value.content);
+        await writable.close();
+
+        currentFileHandle = handle;
+    }
+    catch {
+        return;
+    }
+}
+
 
 function init() {
     editor.value.language = "js";
+    editor.value.content = " ";
+    editor.update();
     editor.value.content = "";
-
     editor.update();
 
     document.querySelectorAll("div.menu").forEach((element) => {
-        element.addEventListener("click", () => {
+        element.addEventListener("click", (event) => {
             if (!document.body.classList.contains("isMenuOpenable")) {
                 event.stopPropagation();
                 document.body.classList.add("isMenuOpenable");
@@ -88,9 +90,16 @@ function init() {
                 case "fopen":
                     fileOpen();
                     break;
-                case "clear":
+                case "close":
                     editor.value.content = "";
+                    currentFileHandle = null;
                     editor.update();
+                    break;
+                case "save":
+                    saveFile();
+                    break;
+                case "save-as":
+                    saveFileAs();
                     break;
             }
         });
