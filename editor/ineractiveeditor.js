@@ -31,7 +31,7 @@ class InteractiveEditor {
                     }
 
                     if (!Prism.languages[value]) {
-                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dosee= not corespond with a defined Grammer in the distribution of the Prism syntax highlighting library");
+                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dose not corespond with a defined Grammer in the distribution of the Prism syntax highlighting libray");
                     }
 
                     self.editor.json.language = value;
@@ -141,6 +141,19 @@ class InteractiveEditor {
                     }
 
                     self.editor.json.theming.padding.betweenLines = value;
+                },
+
+
+                get lineNumberHorizontal() {
+                    return self.editor.json.theming.padding.lineNumberHorizontal;
+                },
+
+                set lineNumberHorizontal(value) {
+                    if (typeof value !== 'number') {
+                        throw new Error("Editor \'lineNumberHorizontal\' padding (editorObject.padding.lineNumberHorizontal) cannot be set to a value of any type other than \'number\'");
+                    }
+
+                    self.editor.json.theming.padding.lineNumberHorizontal = value;
                 },
             },
             selection: {
@@ -294,10 +307,11 @@ class InteractiveEditor {
             },
         };
 
-        this.registorDefaultEvents();
+        this.registerDefaultEvents();
+        this.listenForDefaultEvents();
     }
 
-    registorDefaultEvents() {
+    registerDefaultEvents() {
         this.event.create("onresize");
         this.event.create("wheel");
         this.event.create("mousedown");
@@ -305,9 +319,6 @@ class InteractiveEditor {
         this.event.create("mouseup");
         this.event.create("keydown");
 
-        this.event.listen("onresize", (event) => {
-            this.update();
-        });
 
         const resizeObserver = new ResizeObserver(() => {
             this.event.signal("onresize", {});
@@ -315,6 +326,78 @@ class InteractiveEditor {
 
         resizeObserver.observe(this.element);
 
+
+        this.element.addEventListener("wheel", (event) => {
+            event.preventDefault();
+
+            this.event.signal("wheel", {
+                deltaX: event.deltaX,
+                deltaY: event.deltaY,
+                deltaMode: event.deltaMode,
+            });
+        });
+
+
+        this.element.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            if (event.button !== 0) return;
+
+            this.event.signal("mousedown", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+                shift: event.shiftKey,
+                ctrl: event.ctrlKey,
+                alt: event.altKey,
+                meta: event.metaKey,
+            });
+        });
+
+
+        this.element.addEventListener("mousemove", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            this.event.signal("mousemove", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+            });
+        });
+
+
+        this.element.addEventListener("mouseup", (event) => {
+            event.preventDefault();
+
+            const rect = this.element.getBoundingClientRect();
+
+            this.event.signal("mouseup", {
+                x: event.clientX - rect.x,
+                y: event.clientY - rect.y,
+            });
+        });
+
+        window.addEventListener("keydown", (event) => {
+            event.preventDefault();
+
+            this.event.signal("keydown", {
+                shiftKey: event.shiftKey,
+                ctrlKey: event.ctrlKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                key: event.key,
+                composing: event.isComposing,
+                repeat: event.repeat,
+            });
+        });
+    }
+
+    listenForDefaultEvents() {
+        this.event.listen("onresize", (event) => {
+            this.update();
+        });
 
         this.event.listen("wheel", (event) => {
             let deltaScrollAmount = 0;
@@ -344,37 +427,19 @@ class InteractiveEditor {
             this.update();
         });
 
-        this.element.addEventListener("wheel", (event) => {
-            event.preventDefault();
-
-            this.event.signal("wheel", {
-                deltaX: event.deltaX,
-                deltaY: event.deltaY,
-                deltaMode: event.deltaMode,
-            });
-        });
-
-
-        this.event.listen("mousedown", (event) => {
-            const rect = this.element.getBoundingClientRect();
-
-            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
-            const lineNumberWidth = this.editor.lineNumbersWidthCache;
+        const standardToCharacterCoordinates = (xcor, ycor) => {
+            const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal;
             const inset = this.editor.getBeforeText();
             const lineStep = this.editor.getLineStep();
-
-            if (event.x >= rect.width - scrollbarWidth) return;
-            if (event.x < lineNumberWidth) return;
-
-            let line = Math.floor((event.y - inset) / lineStep + this.editor.json.scroll.scrollLine);
-            line = line <= 0 ? 0 : line;
-
-            this.cursor.y = line;
-
             const lines = this.value.content.split("\n");
+
+            const line = Math.floor((ycor - inset) / lineStep + this.editor.json.scroll.scrollLine);
+
             if (line < 0 || line >= lines.length) {
-                this.update();
-                return;
+                return {
+                    line,
+                    charIndex: 0,
+                };
             }
 
             const text = lines[line];
@@ -385,13 +450,40 @@ class InteractiveEditor {
             for (let i = 0; i < text.length; i++) {
                 currentX += this.editor.ctx.measureText(text[i]).width;
 
-                if (event.x < currentX) {
+                if (xcor < currentX) {
                     charIndex = i;
                     break;
                 }
             }
 
-            this.cursor.x = charIndex;
+            return {
+                line,
+                charIndex,
+            };
+        };
+
+        this.event.listen("mousedown", (event) => {
+            const rect = this.element.getBoundingClientRect();
+
+            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+
+            if (event.x >= rect.width - scrollbarWidth) return;
+            const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal * 2 + 1;
+            if (event.x < lineNumberWidth) return;
+
+            const coordinates = standardToCharacterCoordinates(event.x, event.y);
+            let line = coordinates.line;
+            line = line <= 0 ? 0 : line;
+
+            this.cursor.y = line;
+
+            const lines = this.value.content.split("\n");
+            if (line < 0 || line >= lines.length) {
+                this.update();
+                return;
+            }
+
+            this.cursor.x = coordinates.charIndex;
 
             this.update();
         });
@@ -439,24 +531,6 @@ class InteractiveEditor {
             grabOffsetY = y - thumbY;
         });
 
-        this.element.addEventListener("mousedown", (event) => {
-            event.preventDefault();
-
-            const rect = this.element.getBoundingClientRect();
-
-            if (event.button !== 0) return;
-
-            this.event.signal("mousedown", {
-                x: event.clientX - rect.x,
-                y: event.clientY - rect.y,
-                shift: event.shiftKey,
-                ctrl: event.ctrlKey,
-                alt: event.altKey,
-                meta: event.metaKey,
-            });
-        });
-
-
         this.event.listen("mousemove", (event) => {
             if (!isDraggingScrollbar) return;
 
@@ -479,33 +553,9 @@ class InteractiveEditor {
             this.update();
         });
 
-        this.element.addEventListener("mousemove", (event) => {
-            event.preventDefault();
-
-            const rect = this.element.getBoundingClientRect();
-
-            this.event.signal("mousemove", {
-                x: event.clientX - rect.x,
-                y: event.clientY - rect.y,
-            });
-        });
-
-
         this.event.listen("mouseup", (event) => {
             isDraggingScrollbar = false;
         });
-
-        this.element.addEventListener("mouseup", (event) => {
-            event.preventDefault();
-
-            const rect = this.element.getBoundingClientRect();
-
-            this.event.signal("mouseup", {
-                x: event.clientX - rect.x,
-                y: event.clientY - rect.y,
-            });
-        });
-
 
         this.event.listen("keydown", (event) => {
             if (event.key === "Backspace") {
@@ -576,20 +626,6 @@ class InteractiveEditor {
             }
 
             this.update();
-        });
-
-        window.addEventListener("keydown", (event) => {
-            event.preventDefault();
-
-            this.event.signal("keydown", {
-                shiftKey: event.shiftKey,
-                ctrlKey: event.ctrlKey,
-                altKey: event.altKey,
-                metaKey: event.metaKey,
-                key: event.key,
-                composing: event.isComposing,
-                repeat: event.repeat,
-            });
         });
     }
 

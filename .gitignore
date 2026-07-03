@@ -1,3 +1,6 @@
 *.kate-swp
 *.swp
 /#*
+
+.DS_Store
+.directory
