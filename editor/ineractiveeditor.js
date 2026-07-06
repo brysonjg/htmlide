@@ -307,8 +307,126 @@ class InteractiveEditor {
             },
         };
 
+        this.selectionAnchor = 0;
+        this.isMouseSelecting = false;
+
         this.registerDefaultEvents();
         this.listenForDefaultEvents();
+    }
+
+    standardToCharacterCoordinates(xcor, ycor) {
+        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal;
+        const inset = this.editor.getBeforeText();
+        const lineStep = this.editor.getLineStep();
+        const lines = this.value.content.split("\n");
+
+        let line = Math.floor((ycor - inset) / lineStep + this.editor.json.scroll.scrollLine);
+
+        if (line < 0) {
+            return { line: 0, charIndex: 0 };
+        }
+
+        if (line >= lines.length) {
+            const lastLine = Math.max(0, lines.length - 1);
+            return { line: lastLine, charIndex: lines[lastLine].length };
+        }
+
+        const text = lines[line];
+
+        let currentX = lineNumberWidth;
+        let charIndex = text.length;
+
+        for (let i = 0; i < text.length; i++) {
+            currentX += this.editor.ctx.measureText(text[i]).width;
+
+            if (xcor < currentX) {
+                charIndex = i;
+                break;
+            }
+        }
+
+        return { line, charIndex };
+    }
+
+    coordsToPosition(x, y) {
+        const coordinates = this.standardToCharacterCoordinates(x, y);
+        return this.editor.xyToPosition(coordinates.charIndex, coordinates.line);
+    }
+
+    getSelectionRange() {
+        if (!this.selection.active) return null;
+
+        const start = Math.min(this.selection.start, this.selection.end);
+        const end = Math.max(this.selection.start, this.selection.end);
+
+        if (start === end) return null;
+
+        return { start, end };
+    }
+
+    clearSelection() {
+        this.selection.active = false;
+        this.selection.start = this.cursor.position;
+        this.selection.end = this.cursor.position;
+    }
+
+    setSelection(anchor, head) {
+        this.selectionAnchor = anchor;
+        this.cursor.position = head;
+
+        if (anchor === head) {
+            this.clearSelection();
+        } else {
+            this.selection.active = true;
+            this.selection.start = anchor;
+            this.selection.end = head;
+        }
+    }
+
+    deleteSelection() {
+        const range = this.getSelectionRange();
+        if (!range) return false;
+
+        this.value.content = this.value.content.slice(0, range.start) + this.value.content.slice(range.end);
+        this.cursor.position = range.start;
+        this.selectionAnchor = range.start;
+        this.clearSelection();
+
+        return true;
+    }
+
+    isInTextArea(x) {
+        const rect = this.element.getBoundingClientRect();
+        const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal * 2 + 1;
+
+        return x >= lineNumberWidth && x < rect.width - scrollbarWidth;
+    }
+
+    ensureCursorVisible() {
+        const canvasHight = this.canvas.getBoundingClientRect().height;
+        const deltaLine = this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines;
+        const veiwpointHeight = Math.floor(canvasHight / deltaLine);
+        const bottomOfVeiwpoint = this.scroll.line + veiwpointHeight;
+
+        if (this.cursor.y < this.scroll.line && this.cursor.y >= 0) {
+            this.scroll.line = this.cursor.y;
+        }
+        else if (this.cursor.y >= bottomOfVeiwpoint) {
+            this.scroll.line -= bottomOfVeiwpoint - this.cursor.y - 1;
+        }
+
+        const fileHeight = this.value.content.split("\n").length;
+
+        if (bottomOfVeiwpoint > fileHeight) {
+            if (fileHeight - veiwpointHeight > 0) {
+                this.scroll.line = fileHeight - veiwpointHeight;
+            }
+        }
+
+        if (this.scroll.line !== 0 && veiwpointHeight >= fileHeight) {
+            this.scroll.line = 0;
+        }
     }
 
     registerDefaultEvents() {
@@ -427,64 +545,55 @@ class InteractiveEditor {
             this.update();
         });
 
-        const standardToCharacterCoordinates = (xcor, ycor) => {
-            const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal;
-            const inset = this.editor.getBeforeText();
-            const lineStep = this.editor.getLineStep();
-            const lines = this.value.content.split("\n");
+        const finishMouseSelection = () => {
+            this.isMouseSelecting = false;
 
-            const line = Math.floor((ycor - inset) / lineStep + this.editor.json.scroll.scrollLine);
-
-            if (line < 0 || line >= lines.length) {
-                return {
-                    line,
-                    charIndex: 0,
-                };
+            if (this.selection.start === this.selection.end) {
+                this.clearSelection();
             }
+        };
 
-            const text = lines[line];
+        const onWindowMouseMove = (nativeEvent) => {
+            if (!this.isMouseSelecting) return;
 
-            let currentX = lineNumberWidth;
-            let charIndex = text.length;
+            const rect = this.element.getBoundingClientRect();
+            const x = nativeEvent.clientX - rect.left;
+            const y = nativeEvent.clientY - rect.top;
 
-            for (let i = 0; i < text.length; i++) {
-                currentX += this.editor.ctx.measureText(text[i]).width;
+            const pos = this.coordsToPosition(x, y);
+            this.setSelection(this.selectionAnchor, pos);
+            this.ensureCursorVisible();
+            this.update();
+        };
 
-                if (xcor < currentX) {
-                    charIndex = i;
-                    break;
-                }
-            }
+        const onWindowMouseUp = () => {
+            if (!this.isMouseSelecting) return;
 
-            return {
-                line,
-                charIndex,
-            };
+            finishMouseSelection();
+            window.removeEventListener("mousemove", onWindowMouseMove);
+            window.removeEventListener("mouseup", onWindowMouseUp);
+            this.update();
         };
 
         this.event.listen("mousedown", (event) => {
-            const rect = this.element.getBoundingClientRect();
+            if (!this.isInTextArea(event.x)) return;
 
-            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+            const pos = this.coordsToPosition(event.x, event.y);
 
-            if (event.x >= rect.width - scrollbarWidth) return;
-            const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal * 2 + 1;
-            if (event.x < lineNumberWidth) return;
+            if (event.shift) {
+                if (!this.selection.active) {
+                    this.selectionAnchor = this.cursor.position;
+                }
 
-            const coordinates = standardToCharacterCoordinates(event.x, event.y);
-            let line = coordinates.line;
-            line = line <= 0 ? 0 : line;
-
-            this.cursor.y = line;
-
-            const lines = this.value.content.split("\n");
-            if (line < 0 || line >= lines.length) {
-                this.update();
-                return;
+                this.setSelection(this.selectionAnchor, pos);
+            } else {
+                this.setSelection(pos, pos);
             }
 
-            this.cursor.x = coordinates.charIndex;
-
+            this.isMouseSelecting = true;
+            window.addEventListener("mousemove", onWindowMouseMove);
+            window.addEventListener("mouseup", onWindowMouseUp);
+            this.ensureCursorVisible();
             this.update();
         });
 
@@ -532,6 +641,8 @@ class InteractiveEditor {
         });
 
         this.event.listen("mousemove", (event) => {
+            if (this.isMouseSelecting) return;
+
             if (!isDraggingScrollbar) return;
 
             const rect = this.element.getBoundingClientRect();
@@ -558,73 +669,86 @@ class InteractiveEditor {
         });
 
         this.event.listen("keydown", (event) => {
-            if (event.key === "Backspace") {
-                if (this.cursor.position === 0) return;
+            const moveCursorHorizontal = (delta) => {
+                const lines = this.value.content.split("\n");
+                const maxPosition = this.value.content.length;
+                const newPosition = Math.max(0, Math.min(this.cursor.position + delta, maxPosition));
 
-                this.value.content = this.value.content.slice(0, this.cursor.position-1) + this.value.content.slice(this.cursor.position);
-                this.cursor.position--;
+                if (event.shiftKey) {
+                    if (!this.selection.active) {
+                        this.selectionAnchor = this.cursor.position;
+                    }
+
+                    this.setSelection(this.selectionAnchor, newPosition);
+                } else {
+                    this.setSelection(newPosition, newPosition);
+                }
+            };
+
+            const moveCursorVertical = (delta) => {
+                const lines = this.value.content.split("\n");
+                const newY = Math.max(0, Math.min(this.cursor.y + delta, lines.length - 1));
+
+                if (event.shiftKey) {
+                    if (!this.selection.active) {
+                        this.selectionAnchor = this.cursor.position;
+                    }
+
+                    this.cursor.y = newY;
+                    this.setSelection(this.selectionAnchor, this.cursor.position);
+                } else {
+                    this.cursor.y = newY;
+                    this.setSelection(this.cursor.position, this.cursor.position);
+                }
+            };
+
+            if (event.key === "Backspace") {
+                if (this.deleteSelection()) {
+                    // selection removed
+                }
+                else if (this.cursor.position > 0) {
+                    this.value.content = this.value.content.slice(0, this.cursor.position - 1) + this.value.content.slice(this.cursor.position);
+                    this.cursor.position--;
+                    this.selectionAnchor = this.cursor.position;
+                }
+            }
+            else if (event.key === "Delete") {
+                if (!this.deleteSelection() && this.cursor.position < this.value.content.length) {
+                    this.value.content = this.value.content.slice(0, this.cursor.position) + this.value.content.slice(this.cursor.position + 1);
+                }
             }
             else if (event.key === "Enter") {
+                this.deleteSelection();
                 this.value.content = this.value.content.slice(0, this.cursor.position) + "\n" + this.value.content.slice(this.cursor.position);
                 this.cursor.position++;
+                this.selectionAnchor = this.cursor.position;
             }
             else if (event.key === "Tab") {
+                this.deleteSelection();
                 this.value.content = this.value.content.slice(0, this.cursor.position) + "    " + this.value.content.slice(this.cursor.position);
                 this.cursor.position += 4;
+                this.selectionAnchor = this.cursor.position;
             }
             else if (event.key === "ArrowRight") {
-                this.cursor.position++;
-
-                const flength = this.value.content.length;
-                if (this.cursor.position > flength) this.cursor.position = flength;
+                moveCursorHorizontal(1);
             }
             else if (event.key === "ArrowLeft") {
-                if (this.cursor.position > 0) {
-                    this.cursor.position--;
-                }
+                moveCursorHorizontal(-1);
             }
             else if (event.key === "ArrowDown") {
-                this.cursor.y++;
-
-                const flength = this.value.content.split("\n").length;
-                if (this.cursor.y > flength) this.cursor.y = flength;
+                moveCursorVertical(1);
             }
             else if (event.key === "ArrowUp") {
-                if (this.cursor.y > 0) {
-                    this.cursor.y--;
-                }
+                moveCursorVertical(-1);
             }
             else if (event.key.length === 1) {
-                // Only add printable characters
+                this.deleteSelection();
                 this.value.content = this.value.content.slice(0, this.cursor.position) + event.key + this.value.content.slice(this.cursor.position);
                 this.cursor.position++;
+                this.selectionAnchor = this.cursor.position;
             }
 
-            // make sure that the cursor is in the veiwpoint
-            const canvasHight = this.canvas.getBoundingClientRect().height;
-            const deltaLine = this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines;
-            const veiwpointHeight = Math.floor(canvasHight/deltaLine);
-            const bottomOfVeiwpoint = this.scroll.line + veiwpointHeight;
-
-            if (this.cursor.y < this.scroll.line && this.cursor.y >= 0) {
-                this.scroll.line = this.cursor.y;
-            }
-            else if (this.cursor.y >= bottomOfVeiwpoint) {
-                this.scroll.line -= bottomOfVeiwpoint - this.cursor.y - 1;
-            }
-
-            const fileHeight = this.value.content.split("\n").length;
-
-            if (bottomOfVeiwpoint > fileHeight) {
-                if (fileHeight - veiwpointHeight > 0) {
-                    this.scroll.line = fileHeight - veiwpointHeight;
-                }
-            }
-
-            if (this.scroll.line !== 0 && veiwpointHeight >= fileHeight) {
-                this.scroll.line = 0;
-            }
-
+            this.ensureCursorVisible();
             this.update();
         });
     }
