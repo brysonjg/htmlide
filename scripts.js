@@ -87,7 +87,7 @@ function init() {
             const action = element.getAttribute("action").toLowerCase();
 
             switch (action) {
-                case "fopen":
+                case "open":
                     await fileOpen();
                     break;
                 case "close":
@@ -109,8 +109,8 @@ function init() {
                 case "edit-copy":
                     await CCPTextActions.copy(editor);
                     break;
-                case "edit-past":
-                    await CCPTextActions.past(editor);
+                case "edit-paste":
+                    await CCPTextActions.paste(editor);
                     editor.update();
                     break;
 
