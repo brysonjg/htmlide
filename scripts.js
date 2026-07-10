@@ -93,7 +93,6 @@ function init() {
                 case "close":
                     editor.value.content = "";
                     currentFileHandle = null;
-                    editor.update();
                     break;
                 case "save":
                     await saveFile();
@@ -104,30 +103,23 @@ function init() {
 
                 case "edit-cut":
                     await CCPTextActions.cut(editor);
-                    editor.update();
                     break;
                 case "edit-copy":
                     await CCPTextActions.copy(editor);
                     break;
                 case "edit-paste":
                     await CCPTextActions.paste(editor);
-                    editor.update();
                     break;
 
                 case "select-all":
-                    editor.selection.start = 0;
-                    editor.selection.end = editor.value.content.length;
-                    editor.cursor.position = editor.value.content.length;
-                    editor.selection.active = true;
-                    editor.update();
+                    SelectionActions.selectAll(editor);
                     break;
                 case "deselect":
-                    editor.selection.start = 0;
-                    editor.selection.end = 0;
-                    editor.selection.active = false;
-                    editor.update();
+                    SelectionActions.deselect(editor);
                     break;
             }
+
+            editor.update();
         });
     });
 

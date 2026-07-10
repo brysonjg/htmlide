@@ -46,12 +46,6 @@ class CCPTextActions { // cut copy past text actions
         editor.cursor.position = start + text.length;
     }
 
-    static _deselect(editor) {
-        editor.selection.active = false;
-        editor.selection.start = 0;
-        editor.selection.end = 0;
-    }
-
     static async cut(editor) {
         this._assertEditor(editor, "cut");
 
@@ -61,7 +55,7 @@ class CCPTextActions { // cut copy past text actions
         await navigator.clipboard.writeText(text);
 
         this._replaceText(editor, "", range.start, range.end);
-        this._deselect(editor);
+        SelectionActions.deselect(editor);
     }
 
 
@@ -91,6 +85,6 @@ class CCPTextActions { // cut copy past text actions
         }
 
         this._replaceText(editor, text, start, end);
-        this._deselect(editor);
+        SelectionActions.deselect(editor);
     }
 }
