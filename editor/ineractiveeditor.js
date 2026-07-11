@@ -13,9 +13,7 @@ class InteractiveEditor {
                 },
 
                 set content(value) {
-                    if (typeof value !== 'string') {
-                        throw new Error("Editor content (editorObject.value.content) cannot be set to a value of any type other than \'string\'");
-                    }
+                    self._assertType(value, 'string', "content", "value.content");
 
                     self.editor.json.content = value;
                 },
@@ -26,9 +24,7 @@ class InteractiveEditor {
                 },
 
                 set language(value) {
-                    if (typeof value !== 'string') {
-                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value of any type other than \'string\'");
-                    }
+                    self._assertType(value, 'string', "language", "value.language");
 
                     if (!Prism.languages[value]) {
                         throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dose not corespond with a defined Grammer in the distribution of the Prism syntax highlighting libray");
@@ -43,13 +39,8 @@ class InteractiveEditor {
                 },
 
                 set line(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor scroll line (editorObject.scroll.line) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor scroll line (editorObject.scroll.line) cannot be set to any negetive values");
-                    }
+                    self._assertType(value, 'number', "scroll line", "scroll.line");
+                    self._assertPositiveFinite(value, "scroll line", "scroll.line");
 
                     self.editor.json.scroll.scrollLine = value;
                 }
@@ -60,17 +51,8 @@ class InteractiveEditor {
                 },
 
                 set position(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor cursor position (editorObject.cursor.position) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (isNaN(value)) {
-                        throw new Error("Editor cursor position (editorObject.cursor.position) cannot be set to the value NaN");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor cursor position (editorObject.cursor.position) cannot be set to a numeric value that is less than 0");
-                    }
+                    self._assertType(value, 'number', "cursor position", "cursor.position");
+                    self._assertPositiveFinite(value, "cursor position", "cursor.position");
 
                     self.editor.json.cursor.position = value;
                 },
@@ -81,17 +63,8 @@ class InteractiveEditor {
                 },
 
                 set x(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor cursor x position (editorObject.cursor.x) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (isNaN(value)) {
-                        throw new Error("Editor cursor x position (editorObject.cursor.x) cannot be set to the value NaN");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor cursor x position (editorObject.cursor.x) cannot be set to a numeric value that is less than 0");
-                    }
+                    self._assertType(value, 'number', "cursor x position", "cursor.x");
+                    self._assertPositiveFinite(value, "cursor x position", "cursor.x");
 
                     self.editor.json.cursor.x = value;
                 },
@@ -102,17 +75,8 @@ class InteractiveEditor {
                 },
 
                 set y(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor cursor y position (editorObject.cursor.y) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (isNaN(value)) {
-                        throw new Error("Editor cursor y position (editorObject.cursor.y) cannot be set to the value NaN");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor cursor y position (editorObject.cursor.y) cannot be set to a numeric value that is less than 0");
-                    }
+                    self._assertType(value, 'number', "cursor y position", "cursor.y");
+                    self._assertPositiveFinite(value, "cursor y position", "cursor.y");
 
                     self.editor.json.cursor.y = value;
                 },
@@ -123,9 +87,7 @@ class InteractiveEditor {
                 },
 
                 set beforeText(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor \'beforeText\' padding (editorObject.padding.beforeText) cannot be set to a value of any type other than \'number\'");
-                    }
+                    self._assertType(value, 'number', "\'beforeText\' padding", "padding.beforeText");
 
                     self.editor.json.theming.padding.beforeText = value;
                 },
@@ -136,9 +98,7 @@ class InteractiveEditor {
                 },
 
                 set betweenLines(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor \'betweenLines\' padding (editorObject.padding.betweenLines) cannot be set to a value of any type other than \'number\'");
-                    }
+                    self._assertType(value, 'number', "\'betweenLines\' padding", "padding.betweenLines");
 
                     self.editor.json.theming.padding.betweenLines = value;
                 },
@@ -149,9 +109,7 @@ class InteractiveEditor {
                 },
 
                 set lineNumberHorizontal(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor \'lineNumberHorizontal\' padding (editorObject.padding.lineNumberHorizontal) cannot be set to a value of any type other than \'number\'");
-                    }
+                    self._assertType(value, 'number', "\'lineNumberHorizontal\' padding", "padding.lineNumberHorizontal");
 
                     self.editor.json.theming.padding.lineNumberHorizontal = value;
                 },
@@ -162,9 +120,7 @@ class InteractiveEditor {
                 },
 
                 set active(value) {
-                    if (typeof value !== 'boolean') {
-                        throw new Error("Editor selection active (editorObject.selection.active) cannot be set to a value of any type other than \'boolean\'");
-                    }
+                    self._assertType(value, 'boolean', "selection active", "selection.active");
 
                     self.editor.json.selection.selectionActive = value;
                 },
@@ -175,17 +131,8 @@ class InteractiveEditor {
                 },
 
                 set start(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a numaric value less than 0");
-                    }
-
-                    if (isNaN(value)) {
-                        throw new Error("Editor selection start (editorObject.selection.start) cannot be set to a value of NaN");
-                    }
+                    self._assertType(value, 'number', "selection start", "selection.start");
+                    self._assertPositiveFinite(value, "selection start", "selection.start");
 
                     self.editor.json.selection.startSelect = value;
                 },
@@ -196,17 +143,8 @@ class InteractiveEditor {
                 },
 
                 set end(value) {
-                    if (typeof value !== 'number') {
-                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a value of any type other than \'number\'");
-                    }
-
-                    if (value < 0) {
-                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a numaric value less than 0");
-                    }
-
-                    if (isNaN(value)) {
-                        throw new Error("Editor selection end (editorObject.selection.end) cannot be set to a value of NaN");
-                    }
+                    self._assertType(value, 'number', "selection end", "selection.end");
+                    self._assertPositiveFinite(value, "selection end", "selection.end");
 
                     self.editor.json.selection.endSelect = value;
                 },
@@ -312,6 +250,25 @@ class InteractiveEditor {
 
         this.registerDefaultEvents();
         this.listenForDefaultEvents();
+    }
+
+    _assertType(value, type, name, adress) {
+        if (typeof value !== type) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a value of any type other than "${type}"`);
+        }
+    }
+    _assertPositiveFinite(value, name, adress) {
+        if (value < 0) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a numaric value less than 0`);
+        }
+
+        if (isNaN(value)) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a value of NaN`);
+        }
+
+        if (value === Infinity) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) must be finite`);
+        }
     }
 
     standardToCharacterCoordinates(xcor, ycor) {
