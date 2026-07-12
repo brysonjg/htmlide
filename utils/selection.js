@@ -6,7 +6,7 @@ class SelectionActions {
     }
 
     static selectAll(editor) {
-        _assertEditor(editor, "selectAll");
+        this._assertEditor(editor, "selectAll");
 
         editor.selection.active = true;
         editor.selection.start = 0;
@@ -16,7 +16,7 @@ class SelectionActions {
     }
 
     static deselect(editor) {
-        _assertEditor(editor, "deselectAll");
+        this._assertEditor(editor, "deselectAll");
 
         editor.selection.active = false;
         editor.selection.start = 0;

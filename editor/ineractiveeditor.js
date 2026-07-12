@@ -27,7 +27,7 @@ class InteractiveEditor {
                     self._assertType(value, 'string', "language", "value.language");
 
                     if (!Prism.languages[value]) {
-                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dose not corespond with a defined Grammer in the distribution of the Prism syntax highlighting libray");
+                        throw new Error("Editor language (editorObject.value.language) cannot be set to a value that dose not corespond with a defined Grammer in the included distribution of the Prism syntax highlighting libray");
                     }
 
                     self.editor.json.language = value;
@@ -277,7 +277,7 @@ class InteractiveEditor {
         const lineStep = this.editor.getLineStep();
         const lines = this.value.content.split("\n");
 
-        let line = Math.floor((ycor - inset) / lineStep + this.editor.json.scroll.scrollLine);
+        let line = Math.floor((ycor - inset) / lineStep + this.scroll.line);
 
         if (line < 0) {
             return { line: 0, charIndex: 0 };
@@ -362,7 +362,7 @@ class InteractiveEditor {
 
     ensureCursorVisible() {
         const canvasHight = this.canvas.getBoundingClientRect().height;
-        const deltaLine = this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines;
+        const deltaLine = this.editor.json.theming.fontSize + this.padding.betweenLines;
         const veiwpointHeight = Math.floor(canvasHight / deltaLine);
         const bottomOfVeiwpoint = this.scroll.line + veiwpointHeight;
 
@@ -572,7 +572,7 @@ class InteractiveEditor {
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHeight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+            const lineHeight = Number(this.editor.json.theming.fontSize + this.padding.betweenLines);
 
             const visibleLines = canvasHeight / lineHeight;
             const maxScroll = Math.max(0, lines - Math.floor(visibleLines));
@@ -606,7 +606,7 @@ class InteractiveEditor {
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHeight = Number(this.editor.json.theming.fontSize + this.editor.json.theming.padding.betweenLines);
+            const lineHeight = Number(this.editor.json.theming.fontSize + this.padding.betweenLines);
 
             const visibleLines = canvasHeight / lineHeight;
             const maxScroll = Math.max(0, lines - Math.floor(visibleLines));

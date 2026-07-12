@@ -89,7 +89,6 @@ toppbar div.menus div.sub-menu:hover div.actions {
     top: 100%;
     left: 0;
     height: fit-content;
-    min-height: 30px;
     width: fit-content;
     min-width: 200px;
     background-color: var(--top-bar-bg-color);
