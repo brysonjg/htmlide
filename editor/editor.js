@@ -47,6 +47,20 @@ class epEditorRenderer {
                     betweenLines: 2,
                     lineNumberHorizontal: 2,
                 },
+                scroll: {
+                    scrollbarColor: "#303030",
+                    scrollbarWidth: 16,
+                    showScrollbar: true,
+                },
+                lineNumbers: {
+                    showLineNumbers: true,
+                    lineNumberBackgroundColor: "#303030",
+                    lineNumberBorderColor: "#444444",
+                    lineNumberTextColor: "#777777",
+                },
+                selection: {
+                    selectColor: "#264f78",
+                },
             },
             scroll: {
                 set scrollLine(value) {
@@ -56,15 +70,6 @@ class epEditorRenderer {
                     return Math.floor(this.scrollPixel / self.getLineStep());
                 },
                 scrollPixel: 0,
-                showScrollbar: true,
-                scrollbarWidth: 16,
-                scrollbarColor: "#303030",
-            },
-            lineNumbers: {
-                showLineNumbers: true,
-                lineNumberBackgroundColor: "#303030",
-                lineNumberBorderColor: "#444444",
-                lineNumberTextColor: "#777777",
             },
             cursor: {
                 position: 0,
@@ -91,7 +96,6 @@ class epEditorRenderer {
                 selectionActive: false,
                 startSelect: 0,
                 endSelect: 0,
-                selectColor: "#264f78",
             }
         };
 
@@ -246,7 +250,7 @@ class epEditorRenderer {
         // render line numbers
         let widthOfLineNumbers = 0;
 
-        if (this.json.lineNumbers.showLineNumbers) {
+        if (this.json.theming.lineNumbers.showLineNumbers) {
             widthOfLineNumbers = this.lineNumbersWidthCache;
 
             const firstLineNumber = this.json.scroll.scrollLine;
@@ -291,14 +295,14 @@ class epEditorRenderer {
 
             const canvasHeight = canvasCssHeight;
 
-            this.ctx.fillStyle = this.json.lineNumbers.lineNumberBackgroundColor;
+            this.ctx.fillStyle = this.json.theming.lineNumbers.lineNumberBackgroundColor;
             this.ctx.fillRect(0, 0, widthOfLineNumbers, canvasHeight);
 
-            this.ctx.fillStyle = this.json.lineNumbers.lineNumberBorderColor;
+            this.ctx.fillStyle = this.json.theming.lineNumbers.lineNumberBorderColor;
             this.ctx.fillRect(0 + widthOfLineNumbers, 0, 1, canvasHeight);
             widthOfLineNumbers++;
 
-            this.ctx.fillStyle = this.json.lineNumbers.lineNumberTextColor;
+            this.ctx.fillStyle = this.json.theming.lineNumbers.lineNumberTextColor;
             for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
                 if (i > totalLines) break;
 
@@ -331,7 +335,7 @@ class epEditorRenderer {
                 scrollLine + Math.ceil(this.canvas.height / lineStep) + 2
             );
 
-            this.ctx.fillStyle = this.json.selection.selectColor;
+            this.ctx.fillStyle = this.json.theming.selection.selectColor;
 
             let globalPos = 0;
 
@@ -448,8 +452,8 @@ class epEditorRenderer {
         }
 
         // render scrollbar
-        if (this.json.scroll.showScrollbar) {
-            const scrollbarWidth = this.json.scroll.scrollbarWidth;
+        if (this.json.theming.scroll.showScrollbar) {
+            const scrollbarWidth = this.json.theming.scroll.scrollbarWidth;
 
             const rect = this.canvas.getBoundingClientRect();
             const visibleHight = rect.height / lineStep;
@@ -462,7 +466,7 @@ class epEditorRenderer {
             this.ctx.fillStyle = this.json.theming.background;
             this.ctx.fillRect(rect.width-scrollbarWidth, 0, scrollbarWidth, rect.height);
 
-            this.ctx.fillStyle = this.json.scroll.scrollbarColor;
+            this.ctx.fillStyle = this.json.theming.scroll.scrollbarColor;
             this.ctx.fillRect(rect.width-scrollbarWidth, heightBefore, scrollbarWidth, scrollThumbHeight);
 
             this.ctx.fillRect(rect.width-scrollbarWidth, 0, 1, rect.height);

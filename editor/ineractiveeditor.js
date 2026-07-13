@@ -81,13 +81,13 @@ class InteractiveEditor {
                     self.editor.json.cursor.y = value;
                 },
             },
-            padding: {
+            layout: {
                 get beforeText() {
                     return self.editor.json.theming.padding.beforeText;
                 },
 
                 set beforeText(value) {
-                    self._assertType(value, 'number', "\'beforeText\' padding", "padding.beforeText");
+                    self._assertType(value, 'number', "\'beforeText\' padding", "layout.beforeText");
 
                     self.editor.json.theming.padding.beforeText = value;
                 },
@@ -98,7 +98,7 @@ class InteractiveEditor {
                 },
 
                 set betweenLines(value) {
-                    self._assertType(value, 'number', "\'betweenLines\' padding", "padding.betweenLines");
+                    self._assertType(value, 'number', "\'betweenLines\' padding", "layout.betweenLines");
 
                     self.editor.json.theming.padding.betweenLines = value;
                 },
@@ -109,9 +109,21 @@ class InteractiveEditor {
                 },
 
                 set lineNumberHorizontal(value) {
-                    self._assertType(value, 'number', "\'lineNumberHorizontal\' padding", "padding.lineNumberHorizontal");
+                    self._assertType(value, 'number', "\'lineNumberHorizontal\' padding", "layout.lineNumberHorizontal");
 
                     self.editor.json.theming.padding.lineNumberHorizontal = value;
+                },
+
+
+                get fontSize() {
+                    return self.editor.json.theming.fontSize;
+                },
+
+                set fontSize(value) {
+                    self._assertType(value, 'number', "font size", "layout.fontSize");
+                    self._assertPositiveFinite(value, "font size", "layout.fontSize");
+
+                    self.editor.json.theming.fontSize = value;
                 },
             },
             selection: {
@@ -272,7 +284,7 @@ class InteractiveEditor {
     }
 
     standardToCharacterCoordinates(xcor, ycor) {
-        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal;
+        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.layout.lineNumberHorizontal;
         const inset = this.editor.getBeforeText();
         const lineStep = this.editor.getLineStep();
         const lines = this.value.content.split("\n");
@@ -354,15 +366,15 @@ class InteractiveEditor {
 
     isInTextArea(x) {
         const rect = this.element.getBoundingClientRect();
-        const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
-        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.padding.lineNumberHorizontal * 2 + 1;
+        const scrollbarWidth = this.editor.json.theming.scroll.scrollbarWidth;
+        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.layout.lineNumberHorizontal * 2 + 1;
 
         return x >= lineNumberWidth && x < rect.width - scrollbarWidth;
     }
 
     ensureCursorVisible() {
         const canvasHight = this.canvas.getBoundingClientRect().height;
-        const deltaLine = this.editor.json.theming.fontSize + this.padding.betweenLines;
+        const deltaLine = this.layout.fontSize + this.layout.betweenLines;
         const veiwpointHeight = Math.floor(canvasHight / deltaLine);
         const bottomOfVeiwpoint = this.scroll.line + veiwpointHeight;
 
@@ -491,7 +503,7 @@ class InteractiveEditor {
             this.editor.json.scroll.scrollPixel += deltaScrollAmount/2.5;
 
             const canvasBounds = this.canvas.getBoundingClientRect();
-            const beforeText = this.padding.beforeText;
+            const beforeText = this.layout.beforeText;
             const lineStep = this.editor.getLineStep();
             const visibleTextHeight = Math.max(0, canvasBounds.height - beforeText);
             const maxVisibleLines = Math.max(1, Math.floor(visibleTextHeight / lineStep));
@@ -565,14 +577,14 @@ class InteractiveEditor {
             const y = event.y;
 
             const width = rect.width;
-            const scrollbarWidth = this.editor.json.scroll.scrollbarWidth;
+            const scrollbarWidth = this.editor.json.theming.scroll.scrollbarWidth;
 
             if (x < width - scrollbarWidth) return;
 
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHeight = Number(this.editor.json.theming.fontSize + this.padding.betweenLines);
+            const lineHeight = Number(this.layout.fontSize + this.layout.betweenLines);
 
             const visibleLines = canvasHeight / lineHeight;
             const maxScroll = Math.max(0, lines - Math.floor(visibleLines));
@@ -606,7 +618,7 @@ class InteractiveEditor {
             const canvasHeight = rect.height;
 
             const lines = this.value.content.split("\n").length;
-            const lineHeight = Number(this.editor.json.theming.fontSize + this.padding.betweenLines);
+            const lineHeight = Number(this.layout.fontSize + this.layout.betweenLines);
 
             const visibleLines = canvasHeight / lineHeight;
             const maxScroll = Math.max(0, lines - Math.floor(visibleLines));
