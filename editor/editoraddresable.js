@@ -54,16 +54,6 @@ class EditorAddresableSD {
 
                     editor.json.cursor.position = value;
                 },
-                get position() {
-                    return editor.json.cursor.position;
-                },
-
-                set position(value) {
-                    self._assertType(value, 'number', "cursor position", "cursor.position");
-                    self._assertPositiveFinite(value, "cursor position", "cursor.position");
-
-                    editor.json.cursor.position = value;
-                },
 
 
                 get x() {
@@ -89,13 +79,13 @@ class EditorAddresableSD {
                     editor.json.cursor.y = value;
                 },
             },
-            padding: {
+            layout: {
                 get beforeText() {
                     return editor.json.theming.padding.beforeText;
                 },
 
                 set beforeText(value) {
-                    self._assertType(value, 'number', "\'beforeText\' padding", "padding.beforeText");
+                    self._assertType(value, 'number', "\'beforeText\' padding", "layout.beforeText");
 
                     editor.json.theming.padding.beforeText = value;
                 },
@@ -106,7 +96,7 @@ class EditorAddresableSD {
                 },
 
                 set betweenLines(value) {
-                    self._assertType(value, 'number', "\'betweenLines\' padding", "padding.betweenLines");
+                    self._assertType(value, 'number', "\'betweenLines\' padding", "layout.betweenLines");
 
                     editor.json.theming.padding.betweenLines = value;
                 },
@@ -117,9 +107,21 @@ class EditorAddresableSD {
                 },
 
                 set lineNumberHorizontal(value) {
-                    self._assertType(value, 'number', "\'lineNumberHorizontal\' padding", "padding.lineNumberHorizontal");
+                    self._assertType(value, 'number', "\'lineNumberHorizontal\' padding", "layout.lineNumberHorizontal");
 
                     editor.json.theming.padding.lineNumberHorizontal = value;
+                },
+
+
+                get fontSize() {
+                    return editor.json.theming.fontSize;
+                },
+
+                set fontSize(value) {
+                    self._assertType(value, 'number', "font size", "layout.fontSize");
+                    self._assertPositiveFinite(value, "font size", "layout.fontSize");
+
+                    editor.json.theming.fontSize = value;
                 },
             },
             selection: {
