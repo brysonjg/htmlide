@@ -1,4 +1,4 @@
-class EditorAddresableSD {
+class EditorAddressableSD {
     constructor(editor) {
         this._assertValidEditor(editor);
 

@@ -6,7 +6,7 @@ class InteractiveEditor {
 
         const self = this;
 
-        this.state = new EditorAddresableSD(this.editor);
+        this.state = new EditorAddressableSD(this.editor);
 
         Object.assign(this, this.state); // proxy them to the top level for ease of use
 

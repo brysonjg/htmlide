@@ -371,7 +371,7 @@ class epEditorRenderer {
 
                     const w = mesureText_(selectedText);
 
-                    const y = (lineIndex - scrollLine) * lineStep + addingBeforeText;
+                    const y = (lineIndex - scrollLine) * lineStep + paddingBeforeText;
 
                     this.ctx.fillRect(x, y, w, lineStep);
                 }
