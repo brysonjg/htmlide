@@ -373,40 +373,40 @@ class InteractiveEditor {
             isDraggingScrollbar = false;
         });
 
+        const moveCursorHorizontal = (delta) => {
+            const lines = this.value.content.split("\n");
+            const maxPosition = this.value.content.length;
+            const newPosition = Math.max(0, Math.min(this.cursor.position + delta, maxPosition));
+
+            if (event.shiftKey) {
+                if (!this.selection.active) {
+                    this.selectionAnchor = this.cursor.position;
+                }
+
+                this.setSelection(this.selectionAnchor, newPosition);
+            } else {
+                this.setSelection(newPosition, newPosition);
+            }
+        };
+
+        const moveCursorVertical = (delta) => {
+            const lines = this.value.content.split("\n");
+            const newY = Math.max(0, Math.min(this.cursor.y + delta, lines.length - 1));
+
+            if (event.shiftKey) {
+                if (!this.selection.active) {
+                    this.selectionAnchor = this.cursor.position;
+                }
+
+                this.cursor.y = newY;
+                this.setSelection(this.selectionAnchor, this.cursor.position);
+            } else {
+                this.cursor.y = newY;
+                this.setSelection(this.cursor.position, this.cursor.position);
+            }
+        };
+
         this.event.listen("keydown", (event) => {
-            const moveCursorHorizontal = (delta) => {
-                const lines = this.value.content.split("\n");
-                const maxPosition = this.value.content.length;
-                const newPosition = Math.max(0, Math.min(this.cursor.position + delta, maxPosition));
-
-                if (event.shiftKey) {
-                    if (!this.selection.active) {
-                        this.selectionAnchor = this.cursor.position;
-                    }
-
-                    this.setSelection(this.selectionAnchor, newPosition);
-                } else {
-                    this.setSelection(newPosition, newPosition);
-                }
-            };
-
-            const moveCursorVertical = (delta) => {
-                const lines = this.value.content.split("\n");
-                const newY = Math.max(0, Math.min(this.cursor.y + delta, lines.length - 1));
-
-                if (event.shiftKey) {
-                    if (!this.selection.active) {
-                        this.selectionAnchor = this.cursor.position;
-                    }
-
-                    this.cursor.y = newY;
-                    this.setSelection(this.selectionAnchor, this.cursor.position);
-                } else {
-                    this.cursor.y = newY;
-                    this.setSelection(this.cursor.position, this.cursor.position);
-                }
-            };
-
             if (event.key === "Backspace") {
                 if (this.deleteSelection()) {
                     // selection removed

@@ -230,7 +230,7 @@ class epEditorRenderer {
         // clear screen
         this.ctx.fillStyle = this.json.theming.background;
         const windowZoom = 1/window.devicePixelRatio;
-        this.ctx.fillRect(0, 0, this.canvas.width*windowZoom, this.canvas.height*windowZoom);
+        this.ctx.fillRect(0, 0, this.canvas.width * windowZoom, this.canvas.height * windowZoom);
 
         this.ctx.fillStyle = this.json.theming.foreground;
         this.ctx.font = `${this.json.theming.fontSize}px ${this.json.theming.fontFace}`;
@@ -371,16 +371,9 @@ class epEditorRenderer {
 
                     const w = mesureText_(selectedText);
 
-                    const y =
-                        (lineIndex - scrollLine) * lineStep +
-                        paddingBeforeText;
+                    const y = (lineIndex - scrollLine) * lineStep + addingBeforeText;
 
-                    this.ctx.fillRect(
-                        x,
-                        y,
-                        w,
-                        lineStep
-                    );
+                    this.ctx.fillRect(x, y, w, lineStep);
                 }
 
                 globalPos += line.length;
@@ -464,12 +457,12 @@ class epEditorRenderer {
             const heightBefore = (scroll / fileHeight) * rect.height;
 
             this.ctx.fillStyle = this.json.theming.background;
-            this.ctx.fillRect(rect.width-scrollbarWidth, 0, scrollbarWidth, rect.height);
+            this.ctx.fillRect(rect.width - scrollbarWidth, 0, scrollbarWidth, rect.height);
 
             this.ctx.fillStyle = this.json.theming.scroll.scrollbarColor;
-            this.ctx.fillRect(rect.width-scrollbarWidth, heightBefore, scrollbarWidth, scrollThumbHeight);
+            this.ctx.fillRect(rect.width - scrollbarWidth, heightBefore, scrollbarWidth, scrollThumbHeight);
 
-            this.ctx.fillRect(rect.width-scrollbarWidth, 0, 1, rect.height);
+            this.ctx.fillRect(rect.width - scrollbarWidth, 0, 1, rect.height);
         }
     }
 }

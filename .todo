@@ -1,0 +1,19 @@
+immediate issues
+
+    pain changing language stuff (have to open dev tools and seting language via api) (not applicable in chromebook)
+    pain moving cursor to the end of lines (which could be fixed via goto menu or end line shortcut)
+    pain using menus to save files (could be fixed via keyboard shortcuts)
+    stragness regarding space tabs, tabulations, and selection also backspace and trversal is no good with space tabs
+    tabulations are renderd as one space
+
+
+down the road issues
+
+    tab size is imutable
+    pasting content is no good
+    sytax highlighting is bland
+
+
+good news
+
+    this system is incredably responsive to my actions
