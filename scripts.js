@@ -18,7 +18,10 @@ async function fileOpen() {
         const [handle] = await showOpenFilePicker();
 
         const file = await handle.getFile();
+        editor.value.language = getLanguageOfFileName(file.name);
         editor.value.content = await file.text();
+        SelectionActions.deselect(editor);
+        editor.scroll.line = 0;
         editor.update();
 
         currentFileHandle = handle;
@@ -58,7 +61,6 @@ async function saveFileAs() {
 
 
 function init() {
-    editor.value.language = "js";
     editor.value.content = " ";
     editor.update();
     editor.value.content = "";
@@ -91,7 +93,10 @@ function init() {
                     await fileOpen();
                     break;
                 case "close":
+                    editor.value.language = "plain";
                     editor.value.content = "";
+                    SelectionActions.deselect(editor);
+                    editor.scroll.line = 0;
                     currentFileHandle = null;
                     break;
                 case "save":
@@ -117,14 +122,20 @@ function init() {
                 case "deselect":
                     SelectionActions.deselect(editor);
                     break;
+
+                case "set-syntax":
+                    editor.value.language = element.dataset.lang;
+                    break;
             }
 
             editor.update();
         });
     });
 
-    document.addEventListener("click", () => {
+    document.addEventListener("click", (event) => {
         if (document.body.classList.contains("isMenuOpenable")) {
+            if (event.target.classList.contains('sub-menu')) return;
+
             document.body.classList.remove("isMenuOpenable");
         }
     });

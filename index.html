@@ -15,7 +15,7 @@
     <toppbar>
       <div class="menus">
         <div class="menu">
-          file
+          File
           <div class="actions">
             <div class="action" action="open">Open</div>
             <div class="action" action="save">Save</div>
@@ -24,7 +24,7 @@
           </div>
         </div>
         <div class="menu">
-          edit
+          Edit
           <div class="actions">
             <div class="action" action="edit-cut">Cut</div>
             <div class="action" action="edit-copy">Copy</div>
@@ -32,7 +32,22 @@
           </div>
         </div>
         <div class="menu">
-          select
+          View
+          <div class="actions">
+            <div class="sub-menu">
+              Highlighting
+              <div class="actions">
+                <div class="action" action="set-syntax" data-lang="plain">None</div>
+                <div class="action" action="set-syntax" data-lang="html">HTML</div>
+                <div class="action" action="set-syntax" data-lang="css">CSS</div>
+                <div class="action" action="set-syntax" data-lang="js">JavaScript</div>
+                <div class="action" action="set-syntax" data-lang="py">Python</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="menu">
+          Select
           <div class="actions">
             <div class="action" action="select-all">Select All</div>
             <div class="action" action="deselect">Deselect</div>
@@ -53,6 +68,7 @@
 
     <script src="./utils/selection.js"></script>
     <script src="./utils/cutcopypast.js"></script>
+    <script src="./utils/fnamelanguage.js"></script>
 
     <script src="./scripts.js"></script>
   </body>
