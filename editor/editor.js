@@ -103,8 +103,10 @@ class epEditorRenderer {
             this.correctCanvasSize();
         });
 
-        this.contentVerification = this.hash32("\uF501plaintext");
+        this.syntaxValidator = 0;
         this.syntaxCache = [];
+
+        this.lineNumbersWidthValidator = 0;
         this.lineNumbersWidthCache = 0;
 
         this.resizeObserver.observe(this.canvas);
@@ -150,6 +152,40 @@ class epEditorRenderer {
         this.canvas.height = rect.height * dpr;
 
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    lineNumberIsFontMonospace(numbs) {
+        const values = Object.values(numbs);
+        return values.every(width => width === values[0]);
+    }
+
+    calculateLineNumberWidth(lines) {
+        let biggestWidth = 0;
+        let numberWidthsCache = {};
+
+        for (let numb = 0; numb <= 9; numb++) {
+            const number = String(numb);
+            numberWidthsCache[number] = this.ctx.measureText(number).width;
+        }
+
+        if (this.lineNumberIsFontMonospace(numberWidthsCache)) {
+            return String(lines).length * numberWidthsCache["0"];
+        }
+
+        for (let line = 1; line <= lines; line++) {
+            const number = String(line);
+            let width = 0;
+
+            for (let digit of number) {
+                width += numberWidthsCache[digit];
+            }
+
+            if (width > biggestWidth) {
+                biggestWidth = width;
+            }
+        }
+
+        return biggestWidth;
     }
 
     normalizePrismTokens(tokens) {
@@ -245,49 +281,24 @@ class epEditorRenderer {
         this.ctx.textBaseline = "bottom";
 
         // pre-calculated for cache verification
-        const hashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
+        const syntaxHashDigest = this.hash32(this.json.content + "\uF501" + this.json.language);
+        const lineNumberHashDigest = this.hash32(lineCount + "\uF501" + this.json.theming.fontSize + "\uF501" + this.json.theming.padding.lineNumberHorizontal + "\uF501" + this.json.theming.fontFace);
 
         // render line numbers
         let widthOfLineNumbers = 0;
 
         if (this.json.theming.lineNumbers.showLineNumbers) {
             widthOfLineNumbers = this.lineNumbersWidthCache;
-
             const firstLineNumber = this.json.scroll.scrollLine;
-            const totalLines = lineCount;
 
             const visibleLines = Math.ceil(
                 this.canvas.height / lineStep / window.devicePixelRatio
             )/2 + 1;
 
-            if (this.contentVerification !== hashDigest) {
-                widthOfLineNumbers = 0;
-
-                const cache = new Map();
-
-                for (let i = 1; i <= totalLines; i++) {
-                    const str = String(i);
-                    const digitLength = str.length;
-
-                    let w = cache.get(digitLength);
-
-                    if (w === undefined) {
-                        w = this.ctx.measureText(str).width;
-                        cache.set(digitLength, w);
-                    } else {
-                        const measured = this.ctx.measureText(str).width;
-                        if (measured > w) {
-                            w = measured;
-                            cache.set(digitLength, w);
-                        }
-                    }
-
-                    if (w > widthOfLineNumbers) {
-                        widthOfLineNumbers = w;
-                    }
-                }
-
+            if (this.lineNumbersWidthValidator !== lineNumberHashDigest) {
+                widthOfLineNumbers = this.calculateLineNumberWidth(lineCount);
                 this.lineNumbersWidthCache = widthOfLineNumbers;
+                this.lineNumbersWidthValidator = lineNumberHashDigest;
             }
 
             widthOfLineNumbers += 2 * this.json.theming.padding.lineNumberHorizontal; // eather side
@@ -299,12 +310,12 @@ class epEditorRenderer {
             this.ctx.fillRect(0, 0, widthOfLineNumbers, canvasHeight);
 
             this.ctx.fillStyle = this.json.theming.lineNumbers.lineNumberBorderColor;
-            this.ctx.fillRect(0 + widthOfLineNumbers, 0, 1, canvasHeight);
+            this.ctx.fillRect(widthOfLineNumbers, 0, 1, canvasHeight);
             widthOfLineNumbers++;
 
             this.ctx.fillStyle = this.json.theming.lineNumbers.lineNumberTextColor;
-            for (let i = firstLineNumber+1; i < firstLineNumber + visibleLines; i++) {
-                if (i > totalLines) break;
+            for (let i = firstLineNumber + 1; i < firstLineNumber + visibleLines; i++) {
+                if (i > lineCount) break;
 
                 this.ctx.fillText(
                     String(i),
@@ -383,7 +394,7 @@ class epEditorRenderer {
         // render all the text
         let tokens;
 
-        if (this.contentVerification === hashDigest) {
+        if (this.syntaxValidator === syntaxHashDigest) {
             tokens = this.syntaxCache;
         }
         else {
@@ -391,7 +402,7 @@ class epEditorRenderer {
         }
 
         this.syntaxCache = tokens;
-        this.contentVerification = hashDigest;
+        this.syntaxValidator = syntaxHashDigest;
 
         const scrollLine = this.json.scroll.scrollLine;
 
@@ -416,7 +427,6 @@ class epEditorRenderer {
             if (renderLine >= maxLines) continue;
 
             this.ctx.fillText(token.content, column, paddingBeforeText + (renderLine + 1) * lineStep);
-
             column += this.ctx.measureText(token.content).width;
         }
 

@@ -61,11 +61,6 @@ async function saveFileAs() {
 
 
 function init() {
-    editor.value.content = " ";
-    editor.update();
-    editor.value.content = "";
-    editor.update();
-
     document.querySelectorAll("div.menu").forEach((element) => {
         element.addEventListener("click", (event) => {
             if (!document.body.classList.contains("isMenuOpenable")) {

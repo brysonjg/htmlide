@@ -1,10 +1,14 @@
 immediate issues
 
-    pain changing language stuff (have to open dev tools and seting language via api) (not applicable in chromebook)
+    file oporations could be put in a libarary
+    menu syntax language selection is a bit akward
+
+    double click to select
     pain moving cursor to the end of lines (which could be fixed via goto menu or end line shortcut)
     pain using menus to save files (could be fixed via keyboard shortcuts)
     stragness regarding space tabs, tabulations, and selection also backspace and trversal is no good with space tabs
     tabulations are renderd as one space
+    undo and redo
 
 
 down the road issues
