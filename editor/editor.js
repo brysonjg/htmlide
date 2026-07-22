@@ -165,7 +165,7 @@ class epEditorRenderer {
 
         for (let numb = 0; numb <= 9; numb++) {
             const number = String(numb);
-            numberWidthsCache[number] = this.ctx.measureText(number).width;
+            numberWidthsCache[number] = this.measureText(number);
         }
 
         if (this.lineNumberIsFontMonospace(numberWidthsCache)) {
@@ -262,6 +262,11 @@ class epEditorRenderer {
         return h >>> 0;
     }
 
+    measureText(string) {
+        const sizeMetrics = this.ctx.measureText(string);
+        return sizeMetrics.width;
+    }
+
     update() {
         // clear screen
         this.ctx.fillStyle = this.json.theming.background;
@@ -319,7 +324,7 @@ class epEditorRenderer {
 
                 this.ctx.fillText(
                     String(i),
-                    widthOfLineNumbers - this.ctx.measureText(String(i)).width - 1.5 - this.json.theming.padding.lineNumberHorizontal,
+                    widthOfLineNumbers - this.measureText(String(i)) - 1.5 - this.json.theming.padding.lineNumberHorizontal,
                     lineStep * (i - firstLineNumber) + paddingBeforeText
                 );
             }
@@ -357,7 +362,7 @@ class epEditorRenderer {
             const mesureText_ = (str) => {
                 if (str === "") return 0;
 
-                return this.ctx.measureText(str).width;
+                return this.measureText(str);
             };
 
             for (let lineIndex = firstVisibleLine; lineIndex < lastVisibleLine; lineIndex++) {
@@ -427,18 +432,18 @@ class epEditorRenderer {
             if (renderLine >= maxLines) continue;
 
             this.ctx.fillText(token.content, column, paddingBeforeText + (renderLine + 1) * lineStep);
-            column += this.ctx.measureText(token.content).width;
+            column += this.measureText(token.content);
         }
 
         // render cursor
         if (this.json.cursor.cursorVisible) {
             const cursorsYCoordinate = this.json.cursor.y;
 
-            const widthOfAllTheCharsBeforCursor = Math.ceil((
-                this.ctx.measureText(
+            const widthOfAllTheCharsBeforCursor = Math.ceil(
+                this.measureText(
                     splitContent[this.json.cursor.y].slice(0, this.json.cursor.x)
-                )
-            ).width + widthOfLineNumbers);
+                ) + widthOfLineNumbers
+            );
 
             this.ctx.save();
             this.ctx.globalCompositeOperation = 'difference';

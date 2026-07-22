@@ -20,34 +20,50 @@ class InteractiveEditor {
     }
 
     standardToCharacterCoordinates(xcor, ycor) {
-        const lineNumberWidth = this.editor.lineNumbersWidthCache + this.layout.lineNumberHorizontal;
-        const inset = this.editor.getBeforeText();
+        const showLineNumbers = this.editor.json.theming.lineNumbers.showLineNumbers;
+        let lineNumberWidth = 0;
+
+        if (showLineNumbers) {
+            lineNumberWidth = this.editor.lineNumbersWidthCache + 2 * this.layout.lineNumberHorizontal + 2;
+        }
+
+        const beforeText = this.editor.getBeforeText();
         const lineStep = this.editor.getLineStep();
         const lines = this.value.content.split("\n");
 
-        let line = Math.floor((ycor - inset) / lineStep + this.scroll.line);
+        const line = Math.floor((ycor - beforeText) / lineStep + this.scroll.line);
 
         if (line < 0) {
             return { line: 0, charIndex: 0 };
         }
-
         if (line >= lines.length) {
             const lastLine = Math.max(0, lines.length - 1);
             return { line: lastLine, charIndex: lines[lastLine].length };
         }
 
         const text = lines[line];
-
         let currentX = lineNumberWidth;
         let charIndex = text.length;
+        let currentIndex = 0;
 
-        for (let i = 0; i < text.length; i++) {
-            currentX += this.editor.ctx.measureText(text[i]).width;
+        for (const char of text) {
+            const width = this.editor.measureText(char);
+            const left = currentX;
+            const right = currentX + width;
 
-            if (xcor < currentX) {
-                charIndex = i;
+            if (xcor < right) {
+                const middle = (left + right) / 2;
+
+                charIndex = currentIndex;
+                if (xcor > middle) {
+                    charIndex += char.length;
+                }
+
                 break;
             }
+
+            currentX = right;
+            currentIndex += char.length;
         }
 
         return { line, charIndex };
