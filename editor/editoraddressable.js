@@ -169,17 +169,18 @@ class EditorAddressableSD {
             throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a value of any type other than "${type}"`);
         }
     }
+
     _assertPositiveFinite(value, name, adress) {
-        if (value < 0) {
-            throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a numaric value less than 0`);
+        if (!isFinite(value)) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) must be finite (not Infinity or -Infinity)`);
         }
 
         if (isNaN(value)) {
             throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to a value of NaN`);
         }
 
-        if (value === Infinity) {
-            throw new Error(`Editor ${name} (editorObject.${adress}) must be finite`);
+        if (value < 0) {
+            throw new Error(`Editor ${name} (editorObject.${adress}) cannot be set to any value less than 0`);
         }
     }
 
